@@ -1,0 +1,37 @@
+{
+  "entities": {
+    "ResearchQuery": {
+      "title": "ResearchQuery",
+      "description": "Grounded search questions and responses executed by the community.",
+      "type": "object",
+      "properties": {
+        "query": { "type": "string" },
+        "response": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "likes": { "type": "number" },
+        "isPublic": { "type": "boolean" }
+      },
+      "required": ["query", "response", "timestamp", "isPublic"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "User emails registered for the NeuralSync 40 research circle.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["email", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/research_queries/{queryId}": {
+      "schema": "#/entities/ResearchQuery",
+      "description": "Collection of community search queries."
+    },
+    "/leads/{leadId}": {
+      "schema": "#/entities/Lead",
+      "description": "Collection of registered leads."
+    }
+  }
+}

@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /research_queries/{queryId} {
+      allow read: if true;
+      allow create: if request.resource.data.query is string && request.resource.data.response is string;
+      allow update: if request.resource.data.likes is number;
+      allow delete: if false;
+    }
+    match /leads/{leadId} {
+      allow read: if false;
+      allow create: if request.resource.data.email is string;
+      allow update, delete: if false;
+    }
+  }
+}
