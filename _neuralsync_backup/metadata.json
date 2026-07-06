@@ -1,0 +1,6 @@
+{
+  "name": "NeuralSync 40",
+  "description": "Official product landing page and access protocol for NeuralSync 40: The Neural On-Ramp™ Protocol.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

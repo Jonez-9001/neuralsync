@@ -1,6 +1,8 @@
 {
-  "name": "NeuralSync 40",
-  "description": "Official product landing page and access protocol for NeuralSync 40: The Neural On-Ramp™ Protocol.",
+  "name": "Project 1: Dead Inventory & Idle Stock Cash Flow Engine",
+  "description": "Factory idle stock analyzer and Tally integration tool for manufacturing owners to expose dead cash, idle days, ABC classes, and annual holding burn.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

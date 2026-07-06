@@ -39,33 +39,49 @@ export default function FaqSection() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-16" id="faq-section-container">
-      <div className="text-center space-y-4 mb-12">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-mono text-blue-400 uppercase tracking-wider">
+      <motion.div
+        initial={{ opacity: 0, y: 25 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="text-center space-y-4 mb-14"
+      >
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00f3ff]/5 border border-[#00f3ff]/15 text-xs font-mono text-[#00f3ff] uppercase tracking-wider">
           <HelpCircle className="w-3.5 h-3.5" /> Core Support
         </span>
         <h3 className="font-display text-2xl sm:text-4xl font-bold text-white">
           Frequently Answered Doubts
         </h3>
-        <p className="text-gray-400 text-sm max-w-xl mx-auto">
+        <p className="text-gray-400 text-sm max-w-xl mx-auto leading-relaxed">
           Gain immediate clarification on auditory physics, device setups, and safe medical recommendations.
         </p>
-      </div>
+      </motion.div>
 
       <div className="space-y-4">
         {faqs.map((faq, idx) => {
           const isOpen = openIndex === idx;
           return (
-            <div 
-              key={idx} 
-              className="border border-white/5 bg-black/40 rounded-xl overflow-hidden transition-all duration-300"
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-30px' }}
+              transition={{ duration: 0.5, delay: idx * 0.08, ease: [0.16, 1, 0.3, 1] }}
+              className={`glass-card rounded-xl overflow-hidden transition-all duration-400 ${
+                isOpen ? 'border-[#00f3ff]/15' : ''
+              }`}
               id={`faq-item-${idx}`}
             >
               <button
                 onClick={() => toggleFaq(idx)}
-                className="w-full text-left p-5 flex justify-between items-center gap-4 text-white hover:bg-white/[0.02] transition-colors focus:outline-none"
+                className="w-full text-left p-5 flex justify-between items-center gap-4 text-white hover:bg-white/[0.02] transition-colors focus:outline-none cursor-pointer group"
               >
-                <span className="font-display font-medium text-sm sm:text-base leading-snug">{faq.question}</span>
-                <span className="flex-shrink-0 text-gray-500">
+                <span className="font-display font-medium text-sm sm:text-base leading-snug group-hover:text-[#00f3ff] transition-colors duration-300">
+                  {faq.question}
+                </span>
+                <span className={`flex-shrink-0 p-1 rounded-lg transition-all duration-300 ${
+                  isOpen ? 'bg-[#00f3ff]/10 text-[#00f3ff]' : 'text-gray-500'
+                }`}>
                   {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                 </span>
               </button>
@@ -76,15 +92,17 @@ export default function FaqSection() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25, ease: "easeInOut" }}
+                    transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    <div className="px-5 pb-5 pt-1 text-xs sm:text-sm text-gray-400 leading-relaxed border-t border-white/[0.02]">
+                    {/* Gradient underline */}
+                    <div className="mx-5 h-px bg-gradient-to-r from-[#00f3ff]/30 via-[#bd00ff]/20 to-transparent" />
+                    <div className="px-5 pb-5 pt-3 text-xs sm:text-sm text-gray-400 leading-relaxed">
                       {faq.answer}
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </div>
+            </motion.div>
           );
         })}
       </div>
