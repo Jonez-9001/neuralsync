@@ -98,6 +98,13 @@
   .print-only {
     display: block !important;
   }
+  .print-page {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
   .bg-slate-900, .bg-slate-950, .industrial-glass, .industrial-card {
     background: white !important;
     color: black !important;
