@@ -86,7 +86,7 @@
 
 /* High-Contrast Print Styling */
 @media print {
-  header, footer, nav, button, input, select, .no-print {
+  .no-print, nav, button, input, select {
     display: none !important;
   }
   body, main {

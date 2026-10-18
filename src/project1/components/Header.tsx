@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
   onTogglePrivacy,
 }) => {
   return (
-    <header className="sticky top-0 z-40 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm no-print">
+    <header className="relative z-20 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm no-print">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Zone 1: Single text element wordmark */}

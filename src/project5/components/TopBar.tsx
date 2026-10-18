@@ -59,7 +59,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   ];
 
   return (
-    <header className={`sticky top-0 z-40 w-full transition-colors border-b ${
+    <header className={`relative z-20 w-full transition-colors border-b ${
       isDarkMode 
         ? 'bg-neutral-900/95 border-neutral-800 backdrop-blur-md text-neutral-100' 
         : 'bg-white/95 border-neutral-200 backdrop-blur-md text-neutral-900'

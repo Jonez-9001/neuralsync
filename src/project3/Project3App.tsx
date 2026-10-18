@@ -111,6 +111,16 @@ export default function App() {
 
   const handleAddTrip = (newTrip: Trip) => {
     setTrips(prev => [newTrip, ...prev]);
+    if (newTrip.date) {
+      setRules(prev => {
+        const nextStart = prev.startDate && newTrip.date < prev.startDate ? newTrip.date : prev.startDate;
+        const nextEnd = prev.endDate && newTrip.date > prev.endDate ? newTrip.date : prev.endDate;
+        if (nextStart !== prev.startDate || nextEnd !== prev.endDate) {
+          return { ...prev, startDate: nextStart, endDate: nextEnd };
+        }
+        return prev;
+      });
+    }
   };
 
   const handleResetData = () => {
