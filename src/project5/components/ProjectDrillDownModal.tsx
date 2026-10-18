@@ -41,6 +41,7 @@ interface ProjectDrillDownModalProps {
   towerData: MondayTowerData;
   isDarkMode: boolean;
   language: Language;
+  onJumpToEngine?: (engine: 'p1' | 'p2' | 'p3' | 'p4') => void;
 }
 
 export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
@@ -49,8 +50,18 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
   towerData,
   isDarkMode,
   language,
+  onJumpToEngine,
 }) => {
   if (!projectId) return null;
+
+  const engineMapping: Record<number, { engine: 'p1' | 'p2' | 'p3' | 'p4'; label: string } | undefined> = {
+    1: { engine: 'p1', label: 'Open Live P1 (Dead Stock Engine) →' },
+    2: { engine: 'p4', label: 'Open Live P4 (Bin & Slotting Audit) →' },
+    3: { engine: 'p2', label: 'Open Live P2 (Dispatch OTIF Engine) →' },
+    4: { engine: 'p3', label: 'Open Live P3 (Freight Leak Audit) →' },
+    5: { engine: 'p2', label: 'Open Live P2 (Dispatch OTIF Engine) →' },
+  };
+  const targetEngine = engineMapping[projectId];
 
   const freightPerTrip = towerData.tripsCount > 0 
     ? towerData.freightPaidRupees / towerData.tripsCount 
@@ -167,6 +178,18 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {targetEngine && onJumpToEngine && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onJumpToEngine(targetEngine.engine);
+                }}
+                className="px-3 py-1 text-xs rounded bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1.5 font-bold transition-colors cursor-pointer shadow-sm"
+              >
+                <ExternalLink className="w-3 h-3" />
+                <span>{targetEngine.label}</span>
+              </button>
+            )}
             <button
               onClick={() => {
                 const csvData = `Project Drill-Down Export: ${currentMeta.title}\nClient: ${towerData.clientName}\nWeek: ${towerData.weekEndingDate}\nValue: ${currentMeta.headline}`;
@@ -177,7 +200,7 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
                 a.download = `project-${projectId}-breakdown.csv`;
                 a.click();
               }}
-              className="px-2.5 py-1 text-xs rounded border border-neutral-700 bg-neutral-800/80 hover:bg-neutral-700 flex items-center gap-1.5 font-medium transition-colors"
+              className="px-2.5 py-1 text-xs rounded border border-neutral-700 bg-neutral-800/80 hover:bg-neutral-700 flex items-center gap-1.5 font-medium transition-colors cursor-pointer"
             >
               <Download className="w-3 h-3" />
               <span>Export CSV</span>
