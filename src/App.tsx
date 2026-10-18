@@ -152,7 +152,16 @@ export default function App() {
         {versionMode === 'standalone_p2' && <Project2App />}
         {versionMode === 'standalone_p3' && <Project3App />}
         {versionMode === 'standalone_p4' && <Project4App />}
-        {versionMode === 'standalone_p5' && <Project5App />}
+        {versionMode === 'standalone_p5' && (
+          <Project5App
+            onJumpToEngine={(engine) => {
+              if (engine === 'p1') setVersionMode('standalone_p1');
+              if (engine === 'p2') setVersionMode('standalone_p2');
+              if (engine === 'p3') setVersionMode('standalone_p3');
+              if (engine === 'p4') setVersionMode('standalone_p4');
+            }}
+          />
+        )}
         {versionMode === 'merged_suite' && (
           <MergedCommandCenter
             onSwitchToStandaloneP1={() => setVersionMode('standalone_p1')}

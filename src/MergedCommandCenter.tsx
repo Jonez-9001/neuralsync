@@ -225,6 +225,71 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
     setTimeout(() => setCopiedWhatsApp(false), 2500);
   };
 
+  const [globalClientInput, setGlobalClientInput] = useState<string>(
+    () => p5TowerData.clientName || 'Ambattur Precision Engineering Pvt Ltd'
+  );
+
+  // Apply a single unified Client/Factory Name across P2, P4, and P5 in one click
+  const handleApplyGlobalBranding = () => {
+    const cleanName = globalClientInput.trim();
+    if (!cleanName) return;
+    try {
+      // Update P2 active workspace companyName
+      const savedWsList = localStorage.getItem('otif_workspaces_v2');
+      const savedActiveId = localStorage.getItem('otif_active_workspace_id_v2') || INITIAL_WORKSPACES[0].id;
+      const wsArray = savedWsList ? JSON.parse(savedWsList) : INITIAL_WORKSPACES;
+      const updatedWsArray = wsArray.map((w: any) =>
+        w.id === savedActiveId
+          ? {
+              ...w,
+              name: cleanName,
+              rules: {
+                ...(w.rules || P2_DEFAULT_RULES),
+                factoryProfile: {
+                  ...((w.rules && w.rules.factoryProfile) || P2_DEFAULT_RULES.factoryProfile),
+                  companyName: cleanName,
+                },
+              },
+            }
+          : w
+      );
+      localStorage.setItem('otif_workspaces_v2', JSON.stringify(updatedWsArray));
+
+      // Update P4 storeName
+      const updatedP4Rules = { ...p4Rules, storeName: `${cleanName} — Spares Store` };
+      localStorage.setItem('binaudit_rules_v1', JSON.stringify(updatedP4Rules));
+
+      // Update P5 clientName
+      const updatedP5 = { ...p5TowerData, clientName: cleanName };
+      localStorage.setItem('monday_tower_data_v1', JSON.stringify(updatedP5));
+
+      setRefreshTick(t => t + 1);
+      setSyncSuccessToast(`Unified client identity "${cleanName}" applied across all engines!`);
+      setTimeout(() => setSyncSuccessToast(null), 3500);
+    } catch {}
+  };
+
+  // Reset all 5 engines to clean benchmark dataset
+  const handleResetAllFiveEngines = () => {
+    if (!confirm('Reset all 5 engines (P1, P2, P3, P4, P5) back to the factory benchmark dataset?')) return;
+    try {
+      localStorage.removeItem('p1_stock_items');
+      localStorage.removeItem('p1_stock_rules');
+      localStorage.removeItem('otif_workspaces_v2');
+      localStorage.removeItem('otif_active_workspace_id_v2');
+      localStorage.removeItem('freight_audit_trips_v1');
+      localStorage.removeItem('freight_audit_rules_v1');
+      localStorage.removeItem('freight_audit_scale_v1');
+      localStorage.removeItem('binaudit_skus_v1');
+      localStorage.removeItem('binaudit_rules_v1');
+      localStorage.removeItem('monday_tower_data_v1');
+      setGlobalClientInput(INITIAL_TOWER_DATA.clientName);
+      setRefreshTick(t => t + 1);
+      setSyncSuccessToast('All 5 engines (P1–P5) restored to clean baseline benchmark data!');
+      setTimeout(() => setSyncSuccessToast(null), 3500);
+    } catch {}
+  };
+
   return (
     <div className="min-h-screen bg-industrial-grid text-slate-100 flex flex-col font-sans">
       {/* Unified Merged Suite Sub-Navigation Bar */}
@@ -348,7 +413,14 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
 
       {activeModule === 'p5_engine' && (
         <div className="flex-1">
-          <Project5App />
+          <Project5App
+            onJumpToEngine={(engine) => {
+              if (engine === 'p1') setActiveModule('p1_engine');
+              if (engine === 'p2') setActiveModule('p2_engine');
+              if (engine === 'p3') setActiveModule('p3_engine');
+              if (engine === 'p4') setActiveModule('p4_engine');
+            }}
+          />
         </div>
       )}
 
@@ -368,6 +440,48 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
               </button>
             </div>
           )}
+
+          {/* Global Client Factory Onboarding & 5-Engine Demo Control Bar */}
+          <div className="industrial-card rounded-xl p-3.5 border border-indigo-500/30 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-mono text-[10px] font-bold uppercase">
+                Unified Client Profile
+              </span>
+              <span className="text-slate-300">
+                Active Factory Identity across P1–P5:
+              </span>
+              <input
+                type="text"
+                value={globalClientInput}
+                onChange={(e) => setGlobalClientInput(e.target.value)}
+                placeholder="Enter Client / Factory Name..."
+                className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-white font-mono text-xs w-64 focus:outline-none focus:border-indigo-500"
+              />
+              <button
+                onClick={handleApplyGlobalBranding}
+                className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold cursor-pointer transition"
+              >
+                Apply to All 5 Engines
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleSyncAllEnginesToMondayTower}
+                className="px-3 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-mono font-bold cursor-pointer flex items-center gap-1.5 transition"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Sync P1–P4 → P5</span>
+              </button>
+              <button
+                onClick={handleResetAllFiveEngines}
+                className="px-3 py-1 rounded-lg bg-slate-900 hover:bg-rose-950/50 text-slate-300 hover:text-rose-300 border border-slate-800 hover:border-rose-500/30 font-mono cursor-pointer transition"
+                title="Restore clean benchmark data across all 5 modules"
+              >
+                Reset All 5 Engines
+              </button>
+            </div>
+          </div>
 
           {/* Executive Hero Banner */}
           <div className="industrial-card rounded-2xl p-6 border border-white/10 shadow-xl relative overflow-hidden">
