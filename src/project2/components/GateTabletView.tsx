@@ -34,12 +34,32 @@ export const GateTabletView: React.FC<GateTabletViewProps> = ({
     return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
   };
 
-  const handleStampDepartureNow = (id: string, vehicle: string) => {
-    const nowTime = getCurrentSystemTimeISO();
-    onUpdateDispatch(id, {
-      actualOut: nowTime,
+  const handleStampDepartureNow = (row: DispatchRow, mode: 'on_time' | 'late_90m' = 'on_time') => {
+    const promisedMs = new Date(row.promisedDate).getTime();
+    let targetDate: Date;
+    if (Number.isFinite(promisedMs)) {
+      // Stamp relative to the PO's scheduled day (-15 mins for on-time gate pass, or +90 mins for late gate hold)
+      const offsetMinutes = mode === 'on_time' ? -15 : 90;
+      targetDate = new Date(promisedMs + offsetMinutes * 60 * 1000);
+    } else {
+      targetDate = new Date();
+    }
+    const yyyy = targetDate.getFullYear();
+    const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(targetDate.getDate()).padStart(2, '0');
+    const hh = String(targetDate.getHours()).padStart(2, '0');
+    const min = String(targetDate.getMinutes()).padStart(2, '0');
+    const stampedISO = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+
+    onUpdateDispatch(row.id, {
+      actualOut: stampedISO,
+      ...(mode === 'late_90m' && !row.delayReason ? { delayReason: 'No vehicle' } : {}),
     });
-    setSuccessToast(`Truck ${vehicle} gate pass stamped at ${nowTime.replace('T', ' ')}!`);
+    setSuccessToast(
+      mode === 'on_time'
+        ? `Truck ${row.vehicle} stamped ON-TIME at ${stampedISO.replace('T', ' ')}!`
+        : `Truck ${row.vehicle} stamped LATE (+90m) at ${stampedISO.replace('T', ' ')}!`
+    );
     setTimeout(() => setSuccessToast(null), 3000);
   };
 
@@ -204,14 +224,23 @@ export const GateTabletView: React.FC<GateTabletViewProps> = ({
                     )}
                   </div>
 
-                  <button
-                    onClick={() => handleStampDepartureNow(row.id, row.vehicle)}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-mono font-semibold text-xs rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer"
-                    title="Stamp current system time as vehicle departure"
-                  >
-                    <Clock className="w-4 h-4" />
-                    <span>Stamp Gate Out (Now)</span>
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => handleStampDepartureNow(row, 'on_time')}
+                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-mono font-semibold text-xs rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                      title="Stamp vehicle gate pass on-time (-15m before promised slot)"
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Stamp On-Time</span>
+                    </button>
+                    <button
+                      onClick={() => handleStampDepartureNow(row, 'late_90m')}
+                      className="px-2.5 py-2 bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 hover:border-rose-500/40 active:scale-95 text-slate-300 border border-slate-700 font-mono font-semibold text-[11px] rounded-lg transition cursor-pointer"
+                      title="Simulate +90m late gate departure"
+                    >
+                      +90m Late
+                    </button>
+                  </div>
 
                   <div className="flex items-center">
                     {row.otif ? (

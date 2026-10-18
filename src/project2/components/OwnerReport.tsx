@@ -495,10 +495,10 @@ export const TrendAnalysisSection: React.FC<{
       isHistorical: false,
     };
 
-    // Dynamic Week 39 (22 Sep – 28 Sep 2026) from dispatches
+    // Dynamic Week 39+ (22 Sep 2026 onwards, including newly added dispatches)
     const w39Rows = calculated.filter(d => {
       const dateStr = (d.promisedDate || d.actualOut || '').split('T')[0];
-      return dateStr >= '2026-09-22' && dateStr <= '2026-09-28';
+      return dateStr >= '2026-09-22';
     });
     const w39Passes = w39Rows.filter(r => r.otif).length;
     const w39Fails = w39Rows.length - w39Passes;

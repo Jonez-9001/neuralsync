@@ -50,10 +50,10 @@ export const WeeklyOTIFTrend: React.FC<WeeklyOTIFTrendProps> = ({ dispatches, ru
     const w3InFull = w3Rows.filter(r => r.inFull).length;
     const w3OTIF = w3Total > 0 ? Math.round((w3Passes / w3Total) * 100) : 0;
 
-    // Week 4: promisedDate between 2026-09-22 and 2026-09-28T23:59:59
+    // Week 4 (Current Active Bucket): promisedDate >= 2026-09-22 (includes newly logged dispatches)
     const w4Rows = calculated.filter(d => {
-      const dateStr = d.promisedDate.split('T')[0];
-      return dateStr >= '2026-09-22' && dateStr <= '2026-09-28';
+      const dateStr = (d.promisedDate || d.actualOut || '').split('T')[0];
+      return dateStr >= '2026-09-22';
     });
 
     const w4Passes = w4Rows.filter(r => r.otif).length;
