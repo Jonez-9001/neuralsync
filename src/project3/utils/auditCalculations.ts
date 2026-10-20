@@ -7,9 +7,11 @@ export function calculateAuditMetrics(trips: Trip[], rules: RulesConfig) {
     return t.date >= rules.startDate && t.date <= rules.endDate;
   });
 
-  // 2. Identify clean trips and calculate best rate per lane
+  // 2. Identify clean trips and calculate best rate per lane (and best fixed trip bill per lane)
   // A clean trip has split === 'No' and weightKg >= rules.minWeightThresholdKg
   const laneBestCleanRate: Record<string, number> = {};
+  const laneBestCleanTripBill: Record<string, number> = {};
+  const isFixedTripMode = rules.benchmarkMode === 'fixed_trip';
 
   eligibleTrips.forEach(t => {
     const isClean = t.split === 'No' && t.weightKg >= rules.minWeightThresholdKg;
@@ -19,6 +21,9 @@ export function calculateAuditMetrics(trips: Trip[], rules: RulesConfig) {
       if (!laneBestCleanRate[t.lane] || ratePerTonne < laneBestCleanRate[t.lane]) {
         laneBestCleanRate[t.lane] = ratePerTonne;
       }
+      if (!laneBestCleanTripBill[t.lane] || t.bill < laneBestCleanTripBill[t.lane]) {
+        laneBestCleanTripBill[t.lane] = t.bill;
+      }
     }
   });
 
@@ -27,18 +32,24 @@ export function calculateAuditMetrics(trips: Trip[], rules: RulesConfig) {
     const tonnes = t.weightKg > 0 ? t.weightKg / 1000 : 0;
     const ratePerTonne = tonnes > 0 ? t.bill / tonnes : 0;
     const bestRate = laneBestCleanRate[t.lane] || ratePerTonne;
+    const bestTripBill = laneBestCleanTripBill[t.lane] || t.bill;
     const isClean = t.split === 'No' && t.weightKg >= rules.minWeightThresholdKg;
     
-    // Rate leak formula: gap * tonnes = (bill - bestRate * tonnes)
-    // Excluded if split or sub-threshold
+    // Rate leak formula:
+    // - per_tonne mode: (bill - bestRate * tonnes)
+    // - fixed_trip mode: (bill - bestTripBill) for same-lane full lorry hire
     let rateLeak = 0;
     if (isClean && tonnes > 0) {
-      rateLeak = Math.max(0, Math.round(t.bill - (bestRate * tonnes)));
+      if (isFixedTripMode) {
+        rateLeak = Math.max(0, Math.round(t.bill - bestTripBill));
+      } else {
+        rateLeak = Math.max(0, Math.round(t.bill - (bestRate * tonnes)));
+      }
     }
 
     const detention = Math.round(t.waitHours * rules.detentionRatePerHour);
     const totalLeak = rateLeak + detention;
-    const isBenchmark = isClean && (rateLeak === 0 || Math.abs(ratePerTonne - bestRate) < 1.0);
+    const isBenchmark = isClean && (rateLeak === 0 || (!isFixedTripMode && Math.abs(ratePerTonne - bestRate) < 1.0));
 
     return {
       ...t,

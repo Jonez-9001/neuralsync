@@ -172,14 +172,17 @@ export const MergedCommandCenter: React.FC<MergedCommandCenterProps> = ({
   const annualShrinkageExposure = p4Summary.shelfShortRupees * 12;
   const overdueReceivables = p5TowerData.unpaidBillsRupees;
 
-  // Total 5-Engine Enterprise Value at Risk
-  const totalEnterpriseValueAtRisk =
+  // CFO-Grade Separation: Balance Sheet Cash Trapped (Stock) vs. Annual P&L Margin Bleed (Flow)
+  const balanceSheetCashTrapped =
     p1Summary.deadCash +
     p1Summary.slowCash +
+    overdueReceivables;
+
+  const annualPnLMarginBleed =
+    p1Summary.annualHoldingBurn +
     annualOemPenaltyBleed +
     annualFreightLeak +
-    annualShrinkageExposure +
-    overdueReceivables;
+    p4Summary.shelfShortRupees;
 
   const materialShortFails = p2Metrics.reasonStats.find(r => r.reason === 'Material short')?.count || 0;
   const projectedOtifAfterMaterialFix = p2Metrics.totalDispatches > 0
@@ -509,15 +512,29 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
                 </p>
               </div>
 
-              <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-5 shrink-0 font-mono space-y-1.5 text-right">
-                <span className="text-[10px] uppercase tracking-wider text-slate-400 block">
-                  Total 5-Engine Annual Value at Risk
-                </span>
-                <div className="text-2xl sm:text-3xl font-black text-rose-400">
-                  {formatIndianLakhsCrores(totalEnterpriseValueAtRisk)}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 shrink-0 font-mono">
+                <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl p-4 space-y-1 text-right">
+                  <span className="text-[10px] uppercase tracking-wider text-amber-300 block font-bold">
+                    Balance Sheet Cash Trapped
+                  </span>
+                  <div className="text-xl sm:text-2xl font-black text-white">
+                    {formatIndianLakhsCrores(balanceSheetCashTrapped)}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    P1 Dead/Slow Stock + P5 Overdue Bills (1-Time Unlock)
+                  </div>
                 </div>
-                <div className="text-[11px] text-slate-400">
-                  Dead Stock + Shrinkage + SLA Debits + Freight Leak + Overdue Bills
+
+                <div className="bg-slate-950/90 border border-rose-500/30 rounded-2xl p-4 space-y-1 text-right">
+                  <span className="text-[10px] uppercase tracking-wider text-rose-300 block font-bold">
+                    Annual P&amp;L Margin Bleed
+                  </span>
+                  <div className="text-xl sm:text-2xl font-black text-rose-400">
+                    {formatIndianLakhsCrores(annualPnLMarginBleed)}/yr
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Holding Interest + SLA Debits + Freight Leak + Shrinkage
+                  </div>
                 </div>
               </div>
             </div>
@@ -857,6 +874,115 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
                       Standalone P5 ↗
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Client Discovery, Data Extraction & Monetization Question Playbook (P1 to P5 + Combined) */}
+          <div className="industrial-card rounded-2xl p-6 border border-amber-500/30 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-4">
+              <div>
+                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono text-[10px] font-bold uppercase">
+                  Field Conversion Playbook
+                </span>
+                <h2 className="text-base sm:text-lg font-black text-white mt-1">
+                  The Exact Questions to Ask to Convert P1–P5 Into Paid Factory Engagements
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Do not pitch "software features." Ask these exact diagnostic questions to extract raw factory data, prove the rupee leak in 48 hours, and close the retainer.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+              {/* P1 Playbook */}
+              <div className="p-4 rounded-xl bg-slate-950/90 border border-amber-500/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-amber-300">P1 • DEAD STOCK AUDIT</span>
+                  <span className="text-[10px] font-mono text-slate-400">Entry Wedge: ₹15k–₹25k</span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  <p><strong className="text-white">Ask Owner:</strong> &ldquo;If we walk to the back rack of your raw-material godown right now, how many lakhs of non-moving steel or cancelled OEM parts are sitting there for over 6 months—and are you paying 11% OD bank interest to hold them?&rdquo;</p>
+                  <p><strong className="text-white">Ask Tally Clerk:</strong> &ldquo;Export the Tally Stock Summary with <em>Closing Qty, Value, and Last Voucher Date</em>—or give me the last 6 months Material Issue Register.&rdquo;</p>
+                  <p className="text-emerald-400 font-mono text-[11px] pt-1 border-t border-slate-800">
+                    <strong>Money Hook:</strong> Charge a fixed diagnostic fee OR 10% recovery commission on dead scrap liquidated in 14 days.
+                  </p>
+                </div>
+              </div>
+
+              {/* P2 Playbook */}
+              <div className="p-4 rounded-xl bg-slate-950/90 border border-emerald-500/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-emerald-300">P2 • DISPATCH OTIF &amp; SLA</span>
+                  <span className="text-[10px] font-mono text-slate-400">Retainer: ₹15k/mo</span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  <p><strong className="text-white">Ask Owner:</strong> &ldquo;Last month, how many times did your biggest OEM customer call you complaining a truck was late or short—and do you know whether Material Short, QC Hold, or Transporter Delay caused most of them?&rdquo;</p>
+                  <p><strong className="text-white">Ask Security Guard:</strong> &ldquo;Show me the physical Gate Out-Register book from the last 14 days and compare the truck out-time against the PO promised slot.&rdquo;</p>
+                  <p className="text-emerald-400 font-mono text-[11px] pt-1 border-t border-slate-800">
+                    <strong>Money Hook:</strong> Protect Tier-1 vendor rating &amp; eliminate OEM debit notes using the 1-page IATF 8D CAPA proof report.
+                  </p>
+                </div>
+              </div>
+
+              {/* P3 Playbook */}
+              <div className="p-4 rounded-xl bg-slate-950/90 border border-cyan-500/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-cyan-300">P3 • FREIGHT LEAK AUDIT</span>
+                  <span className="text-[10px] font-mono text-slate-400">25% Gain-Share</span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  <p><strong className="text-white">Ask Owner:</strong> &ldquo;When two different transport brokers run the exact same Ambattur–Oragadam lane in the same week, why does one bill you ₹4,200 and the other ₹6,300—and how many hours did that lorry sit waiting at your gate?&rdquo;</p>
+                  <p><strong className="text-white">Ask Accounts Clerk:</strong> &ldquo;Give me 1 month of yellow Lorry Receipts (LR bills) and the security gate vehicle in/out log.&rdquo;</p>
+                  <p className="text-emerald-400 font-mono text-[11px] pt-1 border-t border-slate-800">
+                    <strong>Money Hook:</strong> Zero upfront risk—charge 25% of verified freight &amp; detention savings recovered over 6 months.
+                  </p>
+                </div>
+              </div>
+
+              {/* P4 Playbook */}
+              <div className="p-4 rounded-xl bg-slate-950/90 border border-fuchsia-500/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-fuchsia-300">P4 • BIN &amp; SLOTTING AUDIT</span>
+                  <span className="text-[10px] font-mono text-slate-400">Audit: ₹12k / Sunday</span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  <p><strong className="text-white">Ask Owner:</strong> &ldquo;How many times this week did your counter boy tell a customer a fast-moving spare part was out of stock, when it was actually sitting uncounted on the mezzanine—or missing from pilferage?&rdquo;</p>
+                  <p><strong className="text-white">Ask Storekeeper:</strong> &ldquo;Give me your top 25 highest-value/fastest-selling SKUs before the shutter opens at 8:30 AM for a 45-minute blind physical hand count.&rdquo;</p>
+                  <p className="text-emerald-400 font-mono text-[11px] pt-1 border-t border-slate-800">
+                    <strong>Money Hook:</strong> Immediate pilferage detection + moving hidden fast movers to the front counter.
+                  </p>
+                </div>
+              </div>
+
+              {/* P5 Playbook */}
+              <div className="p-4 rounded-xl bg-slate-950/90 border border-rose-500/30 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-rose-300">P5 • MONDAY 9 AM TOWER</span>
+                  <span className="text-[10px] font-mono text-slate-400">Habit: ₹15k–₹25k/mo</span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  <p><strong className="text-white">Ask Owner:</strong> &ldquo;Every Monday at 9:00 AM, before you walk into your factory, do you know on one WhatsApp screen: (1) Dead Cash, (2) Stockout Risk SKUs, (3) Late Loads, (4) Cost/Trip, (5) OTIF %, and (6) Overdue Bills &gt;30d?&rdquo;</p>
+                  <p><strong className="text-white">Ask Accounts Head:</strong> &ldquo;Every Saturday at 4 PM, send me the 8 yellow numbers from Tally Outstandings and the Gate Register.&rdquo;</p>
+                  <p className="text-emerald-400 font-mono text-[11px] pt-1 border-t border-slate-800">
+                    <strong>Money Hook:</strong> You are not selling software; you are selling the Owner&apos;s Monday 9 AM peace of mind.
+                  </p>
+                </div>
+              </div>
+
+              {/* Combined P1-P5 Playbook */}
+              <div className="p-4 rounded-xl bg-indigo-950/30 border border-indigo-500/40 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono font-bold text-indigo-300">P1–P5 • FULL SUITE UPSELL</span>
+                  <span className="text-[10px] font-mono text-emerald-300">LTV: ₹2.5L–₹4.5L/yr</span>
+                </div>
+                <div className="space-y-1.5 text-slate-300">
+                  <p><strong className="text-white">The Sequencing Rule:</strong> Never pitch all 5 modules on Day 1. Land with <strong>ONE bleeding wound</strong> (usually P3 Freight Leak or P1 Dead Stock) as a 48-hour proof audit using their own CSV/bills.</p>
+                  <p><strong className="text-white">The Upsell Bridge:</strong> Once P1/P3 unlocks ₹2L+ in cash, enroll the owner into <strong>P5 (Monday 9 AM WhatsApp Control Tower)</strong> so the leak never comes back.</p>
+                  <p className="text-indigo-300 font-mono text-[11px] pt-1 border-t border-indigo-500/30">
+                    <strong>Result:</strong> 1-time audit converts into a sticky 12-month operational retainer.
+                  </p>
                 </div>
               </div>
             </div>

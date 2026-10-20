@@ -27,13 +27,20 @@ import {
   Language 
 } from '../types';
 import { 
-  SAMPLE_STOCKOUT_SKUS, 
-  SAMPLE_LATE_ORDERS, 
-  SAMPLE_FREIGHT_TRIPS, 
-  SAMPLE_UNPAID_BILLS, 
-  SAMPLE_DEAD_STOCK 
+  SAMPLE_UNPAID_BILLS
 } from '../data/sampleData';
 import { formatINR, formatPercent } from '../utils/formatters';
+
+// Live P1–P4 Cross-Engine Data Imports
+import { AMBATTUR_FABRICATION_SAMPLE, DEFAULT_RULES as P1_DEFAULT_RULES } from '../../project1/data/initialData';
+import { generateOwnerReport, evaluateStockEngine } from '../../project1/utils/calculations';
+import { INITIAL_DISPATCHES, INITIAL_RULES as P2_DEFAULT_RULES } from '../../project2/data/initialData';
+import { INITIAL_WORKSPACES } from '../../project2/data/factoryWorkspaces';
+import { calculateOTIFMetrics, calculateRowStatus } from '../../project2/utils/otifCalculator';
+import { INITIAL_TRIPS, DEFAULT_RULES as P3_DEFAULT_RULES } from '../../project3/data/defaultData';
+import { calculateAuditMetrics } from '../../project3/utils/auditCalculations';
+import { INITIAL_SAMPLE_SKUS as P4_INITIAL_SKUS, DEFAULT_RULES as P4_DEFAULT_RULES } from '../../project4/data/sampleData';
+import { computePredictiveShortages } from '../../project4/utils/auditCalculations';
 
 interface ProjectDrillDownModalProps {
   projectId: number | null;
@@ -63,6 +70,77 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
   };
   const targetEngine = engineMapping[projectId];
 
+  // Pull live underlying records from P1, P2, P3, P4 localStorage (or baseline defaults)
+  const { p1LiveSummary, liveDeadItems } = (() => {
+    try {
+      const items = JSON.parse(localStorage.getItem('p1_stock_items') || 'null') || AMBATTUR_FABRICATION_SAMPLE;
+      const rules = JSON.parse(localStorage.getItem('p1_stock_rules') || 'null') || P1_DEFAULT_RULES;
+      const calculated = evaluateStockEngine(items, rules);
+      return {
+        p1LiveSummary: generateOwnerReport(items, rules),
+        liveDeadItems: calculated.filter(i => i.status === 'Dead'),
+      };
+    } catch {
+      const calculated = evaluateStockEngine(AMBATTUR_FABRICATION_SAMPLE, P1_DEFAULT_RULES);
+      return {
+        p1LiveSummary: generateOwnerReport(AMBATTUR_FABRICATION_SAMPLE, P1_DEFAULT_RULES),
+        liveDeadItems: calculated.filter(i => i.status === 'Dead'),
+      };
+    }
+  })();
+
+  const { p2LiveMetrics, liveLateDispatches } = (() => {
+    try {
+      let dispatches = INITIAL_DISPATCHES;
+      let rules = P2_DEFAULT_RULES;
+      const savedWsList = localStorage.getItem('otif_workspaces_v2');
+      const savedActiveId = localStorage.getItem('otif_active_workspace_id_v2') || INITIAL_WORKSPACES[0].id;
+      if (savedWsList) {
+        const parsed = JSON.parse(savedWsList);
+        const found = parsed.find((w: any) => w.id === savedActiveId) || parsed[0];
+        if (found) {
+          dispatches = found.dispatches || INITIAL_DISPATCHES;
+          rules = found.rules || P2_DEFAULT_RULES;
+        }
+      }
+      const rows = dispatches.map((d: any) => calculateRowStatus(d, rules));
+      return {
+        p2LiveMetrics: calculateOTIFMetrics(dispatches, rules),
+        liveLateDispatches: rows.filter((r: any) => !r.onTime),
+      };
+    } catch {
+      const rows = INITIAL_DISPATCHES.map(d => calculateRowStatus(d, P2_DEFAULT_RULES));
+      return {
+        p2LiveMetrics: calculateOTIFMetrics(INITIAL_DISPATCHES, P2_DEFAULT_RULES),
+        liveLateDispatches: rows.filter(r => !r.onTime),
+      };
+    }
+  })();
+
+  const p3LiveAudit = (() => {
+    try {
+      const trips = JSON.parse(localStorage.getItem('freight_audit_trips_v1') || 'null') || INITIAL_TRIPS;
+      const rules = JSON.parse(localStorage.getItem('freight_audit_rules_v1') || 'null') || P3_DEFAULT_RULES;
+      return calculateAuditMetrics(trips, rules);
+    } catch {
+      return calculateAuditMetrics(INITIAL_TRIPS, P3_DEFAULT_RULES);
+    }
+  })();
+
+  const p4LiveShortages = (() => {
+    try {
+      const items = JSON.parse(localStorage.getItem('binaudit_skus_v1') || 'null') || P4_INITIAL_SKUS;
+      const rules = JSON.parse(localStorage.getItem('binaudit_rules_v1') || 'null') || P4_DEFAULT_RULES;
+      return computePredictiveShortages(items, rules).filter(
+        s => s.severity === 'critical' || s.severity === 'warning'
+      );
+    } catch {
+      return computePredictiveShortages(P4_INITIAL_SKUS, P4_DEFAULT_RULES).filter(
+        s => s.severity === 'critical' || s.severity === 'warning'
+      );
+    }
+  })();
+
   const freightPerTrip = towerData.tripsCount > 0 
     ? towerData.freightPaidRupees / towerData.tripsCount 
     : 0;
@@ -74,41 +152,41 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
   const projectMeta = [
     {
       id: 1,
-      title: 'Dead Cash Inventory (Project 1)',
-      headline: `₹${towerData.deadCashRupees.toLocaleString('en-IN')}`,
-      sub: 'Rupees in items that have not moved for 180 days. Refreshed only when a new stock file arrives.',
+      title: 'Dead Cash Inventory (Project 1 — Live Ledger)',
+      headline: `₹${p1LiveSummary.deadCash.toLocaleString('en-IN')}`,
+      sub: `${liveDeadItems.length} SKUs idle >180 days in Project 1. Live-linked to your P1 Stock Sheet.`,
       icon: PackageX,
       color: 'text-rose-400',
     },
     {
       id: 2,
-      title: 'Stockout Risk (Project 4 / P1 Opposite)',
-      headline: `${towerData.stockoutRiskCount} SKUs`,
-      sub: 'Important A-items or fast movers with less than two weeks of use left on the shelf. Counted SKUs, not rupees.',
+      title: 'Stockout Risk (Project 4 — Live Bin Velocity)',
+      headline: `${p4LiveShortages.length} SKUs`,
+      sub: 'Fast-moving A-items with critical/warning days of cover remaining on the shelf in Project 4.',
       icon: Layers,
       color: 'text-amber-400',
     },
     {
       id: 3,
-      title: 'Orders Late (Project 2 Clock Fail)',
-      headline: `${towerData.ordersLateCount} of ${towerData.dispatchesCount} Dispatches`,
-      sub: 'Loads that missed the promised dispatch time. Pure clock fail, separate from quantity shortages.',
+      title: 'Orders Late (Project 2 — Live Gate Clock Fail)',
+      headline: `${liveLateDispatches.length} of ${p2LiveMetrics.totalDispatches} Dispatches`,
+      sub: 'Loads that missed the promised gate departure time in Project 2.',
       icon: Clock,
       color: 'text-orange-400',
     },
     {
       id: 4,
-      title: 'Freight per Trip (Project 3 Lane Economics)',
-      headline: `₹${Math.round(freightPerTrip).toLocaleString('en-IN')}`,
-      sub: `Freight paid (${formatINR(towerData.freightPaidRupees)}) divided by ${towerData.tripsCount} trips. Compared with his own previous Monday.`,
+      title: 'Freight per Trip (Project 3 — Live Lorry Ledger)',
+      headline: `₹${Math.round(p3LiveAudit.totals.totalTrips > 0 ? p3LiveAudit.totals.freightPaid / p3LiveAudit.totals.totalTrips : freightPerTrip).toLocaleString('en-IN')}`,
+      sub: `Live P3 Freight Paid (${formatINR(p3LiveAudit.totals.freightPaid)}) across ${p3LiveAudit.totals.totalTrips} trips (Leak: ${formatINR(p3LiveAudit.totals.totalLeak)}).`,
       icon: Truck,
       color: 'text-yellow-400',
     },
     {
       id: 5,
-      title: 'OTIF (Project 2 Strict Pass/Fail)',
-      headline: `${Math.round(otifPercent)}% (${towerData.otifPassesCount} / ${towerData.dispatchesCount})`,
-      sub: 'Passes divided by dispatches. Strict rule: late full load and on-time short load both fail.',
+      title: 'OTIF (Project 2 — Live Strict Pass/Fail)',
+      headline: `${p2LiveMetrics.otifPercent}% (${p2LiveMetrics.passes} / ${p2LiveMetrics.totalDispatches})`,
+      sub: 'Passes divided by dispatches in Project 2. Strict rule: late full load and on-time short load both fail.',
       icon: CheckCircle2,
       color: 'text-purple-400',
     },
@@ -210,19 +288,15 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
 
         {/* Modal Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
-          {/* PROJECT 1: Dead Cash */}
+          {/* PROJECT 1: Dead Cash (Live from P1) */}
           {projectId === 1 && (
             <div className="space-y-4">
               <div className={`p-4 rounded-xl border text-xs leading-relaxed space-y-1 ${
                 isDarkMode ? 'bg-neutral-950 border-neutral-800 text-neutral-300' : 'bg-amber-50/50 border-amber-200 text-neutral-800'
               }`}>
-                <p className="font-semibold text-amber-400">Project 1 Ground Rules:</p>
+                <p className="font-semibold text-amber-400">Project 1 Live Ledger (180+ Days Idle):</p>
                 <p>
-                  Rupees in items that have not moved for 180 days. Refresh it only when he sends a new stock file. 
-                  Do not invent a new dead number every Monday from memory. If the file has not changed, the number stays, and you say so.
-                </p>
-                <p className="text-neutral-500 pt-1 font-mono">
-                  Current Status: File unchanged since 28 Sep 2026. Prior count retained.
+                  Showing live Dead Stock SKUs directly from <strong>Project 1</strong>. Any edits, liquidations, or imports in P1 immediately update this table.
                 </p>
               </div>
 
@@ -230,36 +304,36 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
                 <table className="w-full text-left text-xs">
                   <thead className={`border-b font-mono ${isDarkMode ? 'bg-neutral-950 text-neutral-400 border-neutral-800' : 'bg-neutral-100 text-neutral-700 border-neutral-300'}`}>
                     <tr>
-                      <th className="py-2.5 px-3">Part No & Description</th>
-                      <th className="py-2.5 px-3">Storage Location</th>
+                      <th className="py-2.5 px-3">Part Code &amp; Name</th>
+                      <th className="py-2.5 px-3">Category</th>
                       <th className="py-2.5 px-3 text-right">Idle Days</th>
                       <th className="py-2.5 px-3 text-right">Qty</th>
                       <th className="py-2.5 px-3 text-right">Dead Rupees</th>
-                      <th className="py-2.5 px-3">Resolution Action</th>
+                      <th className="py-2.5 px-3">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-800/60 font-mono">
-                    {SAMPLE_DEAD_STOCK.map((item) => (
+                    {liveDeadItems.map((item) => (
                       <tr key={item.id} className="hover:bg-neutral-800/30 transition-colors">
                         <td className="py-2.5 px-3 font-sans">
-                          <div className="font-semibold text-neutral-200">{item.partNo}</div>
-                          <div className="text-[11px] text-neutral-500 font-sans">{item.description}</div>
+                          <div className="font-semibold text-neutral-200">{item.itemCode} — {item.itemName}</div>
+                          <div className="text-[11px] text-neutral-500 font-mono">Last Moved: {item.lastMovement}</div>
                         </td>
-                        <td className="py-2.5 px-3 text-neutral-400">{item.locationBin}</td>
+                        <td className="py-2.5 px-3 text-neutral-400">{item.category}</td>
                         <td className="py-2.5 px-3 text-right text-rose-400 font-bold">{item.daysIdle}d</td>
-                        <td className="py-2.5 px-3 text-right">{item.qty}</td>
-                        <td className="py-2.5 px-3 text-right font-bold text-neutral-200">{formatINR(item.totalValueRupees)}</td>
+                        <td className="py-2.5 px-3 text-right">{item.qtyOnHand} pcs</td>
+                        <td className="py-2.5 px-3 text-right font-bold text-neutral-200">{formatINR(item.closingValue || 0)}</td>
                         <td className="py-2.5 px-3 font-sans">
                           <span className="text-[11px] px-2 py-0.5 rounded bg-neutral-800 border border-neutral-700 text-amber-300">
-                            {item.recommendation}
+                            {item.action}
                           </span>
                         </td>
                       </tr>
                     ))}
                     <tr className="font-bold border-t-2 border-neutral-700 bg-neutral-950/50">
-                      <td colSpan={4} className="py-3 px-3 text-right font-sans">Total 180+ Day Dead Cash:</td>
-                      <td className="py-3 px-3 text-right text-rose-400 text-sm">{formatINR(towerData.deadCashRupees)}</td>
-                      <td className="py-3 px-3 text-[11px] text-neutral-400 font-sans">4 idle SKU lines</td>
+                      <td colSpan={4} className="py-3 px-3 text-right font-sans">Total Live P1 Dead Cash:</td>
+                      <td className="py-3 px-3 text-right text-rose-400 text-sm">{formatINR(p1LiveSummary.deadCash)}</td>
+                      <td className="py-3 px-3 text-[11px] text-neutral-400 font-sans">{liveDeadItems.length} idle SKUs</td>
                     </tr>
                   </tbody>
                 </table>
@@ -267,60 +341,63 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
             </div>
           )}
 
-          {/* PROJECT 2 / 4: Stockout Risk */}
+          {/* PROJECT 2 / 4: Stockout Risk (Live from P4) */}
           {projectId === 2 && (
             <div className="space-y-4">
               <div className={`p-4 rounded-xl border text-xs leading-relaxed space-y-1 ${
                 isDarkMode ? 'bg-neutral-950 border-neutral-800 text-neutral-300' : 'bg-amber-50/50 border-amber-200 text-neutral-800'
               }`}>
-                <p className="font-semibold text-amber-400">Stockout Risk Definition:</p>
+                <p className="font-semibold text-amber-400">Stockout Risk (Live from Project 4 Bin Audit):</p>
                 <p>
-                  This is the opposite of dead stock. An important item with less than two weeks of use left on the shelf. 
-                  You count SKUs, not rupees. He needs to buy, not admire a chart. 
-                  "Important" means an A-item or a fast mover. Four means four parts may run out inside a fortnight. You do not guess this. You count them.
+                  Showing live SKUs from <strong>Project 4</strong> with critical or warning days of cover left on the shelf based on actual hand physical count vs. monthly issue velocity.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {SAMPLE_STOCKOUT_SKUS.map((sku) => (
+                {p4LiveShortages.map((sku) => (
                   <div 
-                    key={sku.id} 
+                    key={sku.code} 
                     className={`p-4 rounded-xl border ${
-                      sku.urgency === 'critical'
+                      sku.severity === 'critical'
                         ? 'border-red-800/80 bg-red-950/20'
                         : 'border-amber-800/80 bg-amber-950/20'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-mono font-bold text-xs text-neutral-200">{sku.partNumber}</span>
+                      <span className="font-mono font-bold text-xs text-neutral-200">{sku.code}</span>
                       <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border ${
-                        sku.urgency === 'critical' 
+                        sku.severity === 'critical' 
                           ? 'bg-red-500/10 text-red-400 border-red-500/30' 
                           : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                       }`}>
-                        {sku.daysRemaining} days left
+                        {sku.daysRemaining} days cover left
                       </span>
                     </div>
 
                     <h4 className="font-semibold text-xs text-neutral-100 mb-2">
-                      {sku.description}
+                      {sku.part}
                     </h4>
 
                     <div className="grid grid-cols-2 gap-2 text-[11px] font-mono text-neutral-400 mb-3 bg-neutral-900/60 p-2.5 rounded-lg border border-neutral-800">
-                      <div>Stock: <strong className="text-white">{sku.stockOnHand} {sku.unit}</strong></div>
-                      <div>Burn rate: <strong className="text-white">{sku.dailyBurnRate} {sku.unit}/day</strong></div>
-                      <div>Lead time: <strong className="text-amber-400">{sku.leadTimeDays} days</strong></div>
-                      <div>Category: <strong className="text-white">{sku.category}</strong></div>
+                      <div>Hand Stock: <strong className="text-white">{sku.physicalQty} pcs</strong></div>
+                      <div>Burn rate: <strong className="text-white">{(sku.monthlyVelocity / 30).toFixed(1)} pcs/day</strong></div>
+                      <div>Monthly Issues: <strong className="text-amber-400">{sku.monthlyVelocity}/mo</strong></div>
+                      <div>Reorder Qty: <strong className="text-emerald-400">{sku.recommendedReorderQty} pcs</strong></div>
                     </div>
 
                     <div className="text-[11px] text-neutral-400 flex items-center justify-between">
-                      <span>Vendor: {sku.supplier}</span>
-                      <button 
-                        onClick={() => alert(`PO Reorder triggered for ${sku.partNumber} to ${sku.supplier}`)}
-                        className="text-amber-400 hover:text-amber-300 font-semibold underline text-xs"
-                      >
-                        Raise PO ➔
-                      </button>
+                      <span>Severity: <strong className="uppercase">{sku.severity}</strong></span>
+                      {onJumpToEngine && (
+                        <button 
+                          onClick={() => {
+                            onClose();
+                            onJumpToEngine('p4');
+                          }}
+                          className="text-amber-400 hover:text-amber-300 font-semibold underline text-xs cursor-pointer"
+                        >
+                          Open in P4 ➔
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -328,44 +405,42 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
             </div>
           )}
 
-          {/* PROJECT 3: Orders Late */}
+          {/* PROJECT 3: Orders Late (Live from P2) */}
           {projectId === 3 && (
             <div className="space-y-4">
               <div className={`p-4 rounded-xl border text-xs leading-relaxed space-y-1 ${
                 isDarkMode ? 'bg-neutral-950 border-neutral-800 text-neutral-300' : 'bg-orange-50/50 border-orange-200 text-neutral-800'
               }`}>
-                <p className="font-semibold text-orange-400">Orders Late (Project 2 Clock Test):</p>
+                <p className="font-semibold text-orange-400">Orders Late (Live from Project 2 Dispatch Register):</p>
                 <p>
-                  A late load missed the promised time. It is not the same as an OTIF fail. 
-                  OTIF also fails a short load that left on time. Late is only the clock. 
-                  Seven late out of 18 dispatches is the line.
+                  Showing all <strong>{liveLateDispatches.length} late dispatches</strong> out of {p2LiveMetrics.totalDispatches} total loads in Project 2.
                 </p>
               </div>
 
               <div className="space-y-2.5">
-                {SAMPLE_LATE_ORDERS.map((ord) => (
+                {liveLateDispatches.map((ord: any) => (
                   <div 
                     key={ord.id}
                     className="p-3.5 rounded-xl border border-neutral-800 bg-neutral-950/60 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                   >
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-amber-400">{ord.orderNumber}</span>
+                        <span className="font-mono font-bold text-amber-400">{ord.po}</span>
                         <span className="text-neutral-400">·</span>
                         <span className="font-medium text-neutral-200">{ord.customer}</span>
                       </div>
                       <div className="text-[11px] text-neutral-400">
-                        Route: {ord.destination} · Carrier: {ord.carrier} ({ord.vehicleNo})
+                        Part: {ord.part} ({ord.shippedQty}/{ord.orderedQty} pcs) · Vehicle: {ord.vehicle}
                       </div>
                       <div className="text-rose-400 text-[11px]">
-                        <strong>Root Cause:</strong> {ord.reason}
+                        <strong>Delay Reason:</strong> {ord.delayReason || 'Unassigned'}
                       </div>
                     </div>
 
                     <div className="text-right font-mono text-[11px] shrink-0">
-                      <div className="text-neutral-400">Promised: {ord.promisedTime}</div>
-                      <div className="text-neutral-400">Actual: {ord.actualDepartureTime}</div>
-                      <div className="text-rose-400 font-bold">Delay: +{ord.delayMinutes} mins</div>
+                      <div className="text-neutral-400">Promised: {ord.promisedDate.replace('T', ' ')}</div>
+                      <div className="text-neutral-400">Actual Out: {ord.actualOut ? ord.actualOut.replace('T', ' ') : 'Pending'}</div>
+                      <div className="text-rose-400 font-bold">Late by: +{ord.lateHours} hrs</div>
                     </div>
                   </div>
                 ))}
@@ -373,17 +448,15 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
             </div>
           )}
 
-          {/* PROJECT 4: Freight per Trip */}
+          {/* PROJECT 4: Freight per Trip (Live from P3) */}
           {projectId === 4 && (
             <div className="space-y-4">
               <div className={`p-4 rounded-xl border text-xs leading-relaxed space-y-1 ${
                 isDarkMode ? 'bg-neutral-950 border-neutral-800 text-neutral-300' : 'bg-yellow-50/50 border-yellow-200 text-neutral-800'
               }`}>
-                <p className="font-semibold text-yellow-400">Freight per Trip (Project 3 Economics):</p>
+                <p className="font-semibold text-yellow-400">Freight per Trip (Live from Project 3 Lorry Audit):</p>
                 <p>
-                  Freight paid divided by trips. The sample inputs are ₹58,000 over 12 trips (₹4,833/trip). 
-                  A rise against last Monday means the lane got dearer or the loads got smaller. 
-                  Compare it with his own previous Monday (₹4,420), not with a national freight average.
+                  Showing all <strong>{p3LiveAudit.totals.totalTrips} verified lorry bills</strong> from Project 3. Total Freight Paid: {formatINR(p3LiveAudit.totals.freightPaid)} (Total Rate + Detention Leak: {formatINR(p3LiveAudit.totals.totalLeak)}).
                 </p>
               </div>
 
@@ -391,34 +464,36 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
                 <table className="w-full text-left text-xs">
                   <thead className={`border-b font-mono ${isDarkMode ? 'bg-neutral-950 text-neutral-400 border-neutral-800' : 'bg-neutral-100 text-neutral-700 border-neutral-300'}`}>
                     <tr>
-                      <th className="py-2.5 px-3">Trip & Date</th>
+                      <th className="py-2.5 px-3">Date &amp; ID</th>
                       <th className="py-2.5 px-3">Lane Corridor</th>
-                      <th className="py-2.5 px-3">Carrier / Vehicle Type</th>
-                      <th className="py-2.5 px-3 text-right">Tons</th>
-                      <th className="py-2.5 px-3 text-right">Utilization</th>
-                      <th className="py-2.5 px-3 text-right">Freight Cost</th>
+                      <th className="py-2.5 px-3">Transporter</th>
+                      <th className="py-2.5 px-3 text-right">Tonnes</th>
+                      <th className="py-2.5 px-3 text-right">Total Leak</th>
+                      <th className="py-2.5 px-3 text-right">Lorry Bill</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-800/60 font-mono">
-                    {SAMPLE_FREIGHT_TRIPS.map((trip) => (
+                    {p3LiveAudit.calculatedTrips.map((trip) => (
                       <tr key={trip.id} className="hover:bg-neutral-800/30 transition-colors">
                         <td className="py-2 px-3">
-                          <div className="font-bold text-neutral-200">{trip.tripNumber}</div>
+                          <div className="font-bold text-neutral-200">{trip.id}</div>
                           <div className="text-[10px] text-neutral-500">{trip.date}</div>
                         </td>
-                        <td className="py-2 px-3 text-neutral-300 font-sans">{trip.route}</td>
+                        <td className="py-2 px-3 text-neutral-300 font-sans">{trip.lane}</td>
                         <td className="py-2 px-3 text-neutral-400 font-sans">
-                          {trip.carrier} <span className="text-neutral-500">({trip.truckType})</span>
+                          {trip.transporter} <span className="text-neutral-500">({trip.waitHours}h wait)</span>
                         </td>
-                        <td className="py-2 px-3 text-right text-neutral-300">{trip.weightTons} T</td>
-                        <td className="py-2 px-3 text-right text-neutral-300">{trip.utilizationPct}%</td>
-                        <td className="py-2 px-3 text-right font-bold text-amber-400">{formatINR(trip.costRupees)}</td>
+                        <td className="py-2 px-3 text-right text-neutral-300">{trip.tonnes.toFixed(2)} T</td>
+                        <td className="py-2 px-3 text-right text-rose-400">{formatINR(trip.totalLeak)}</td>
+                        <td className="py-2 px-3 text-right font-bold text-amber-400">{formatINR(trip.bill)}</td>
                       </tr>
                     ))}
                     <tr className="font-bold border-t-2 border-neutral-700 bg-neutral-950/50">
-                      <td colSpan={3} className="py-3 px-3 text-right font-sans">12 Trips Total Freight:</td>
+                      <td colSpan={3} className="py-3 px-3 text-right font-sans">{p3LiveAudit.totals.totalTrips} Trips Total ({formatINR(p3LiveAudit.totals.freightPaid)}):</td>
                       <td colSpan={2} className="py-3 px-3 text-right font-sans">Avg Cost per Trip:</td>
-                      <td className="py-3 px-3 text-right text-amber-400 text-sm">{formatINR(Math.round(freightPerTrip))}</td>
+                      <td className="py-3 px-3 text-right text-amber-400 text-sm">
+                        {formatINR(Math.round(p3LiveAudit.totals.totalTrips > 0 ? p3LiveAudit.totals.freightPaid / p3LiveAudit.totals.totalTrips : 0))}
+                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -426,41 +501,46 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
             </div>
           )}
 
-          {/* PROJECT 5: OTIF */}
+          {/* PROJECT 5: OTIF (Live from P2) */}
           {projectId === 5 && (
             <div className="space-y-4">
               <div className={`p-4 rounded-xl border text-xs leading-relaxed space-y-1 ${
                 isDarkMode ? 'bg-neutral-950 border-neutral-800 text-neutral-300' : 'bg-purple-50/50 border-purple-200 text-neutral-800'
               }`}>
-                <p className="font-semibold text-purple-400">Strict OTIF (Project 2 Standard):</p>
+                <p className="font-semibold text-purple-400">Strict OTIF (Live from Project 2):</p>
                 <p>
-                  OTIF is 50%. Passes divided by dispatches. Nine passes out of 18. 
-                  Same definition as Project 2. Do not soften it here. 
+                  Live OTIF is <strong>{p2LiveMetrics.otifPercent}%</strong> ({p2LiveMetrics.passes} passes out of {p2LiveMetrics.totalDispatches} dispatches). 
                   A late full load and an on-time short load both fail.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center">
                 <div className="p-4 rounded-xl border border-emerald-800/60 bg-emerald-950/20">
-                  <div className="text-2xl font-bold font-mono text-emerald-400">9 Passes</div>
-                  <div className="text-xs text-neutral-400 mt-1">On-Time & In-Full (50%)</div>
+                  <div className="text-2xl font-bold font-mono text-emerald-400">{p2LiveMetrics.passes} Passes</div>
+                  <div className="text-xs text-neutral-400 mt-1">On-Time &amp; In-Full ({p2LiveMetrics.otifPercent}%)</div>
                 </div>
                 <div className="p-4 rounded-xl border border-orange-800/60 bg-orange-950/20">
-                  <div className="text-2xl font-bold font-mono text-orange-400">7 Time Fails</div>
+                  <div className="text-2xl font-bold font-mono text-orange-400">
+                    {p2LiveMetrics.failsLateOnly + p2LiveMetrics.failsLateAndShort} Time Fails
+                  </div>
                   <div className="text-xs text-neutral-400 mt-1">Left past promised clock</div>
                 </div>
                 <div className="p-4 rounded-xl border border-rose-800/60 bg-rose-950/20">
-                  <div className="text-2xl font-bold font-mono text-rose-400">2 Quantity Fails</div>
-                  <div className="text-xs text-neutral-400 mt-1">On-time but short shipped</div>
+                  <div className="text-2xl font-bold font-mono text-rose-400">
+                    {p2LiveMetrics.failsShortOnly + p2LiveMetrics.failsLateAndShort} Quantity Fails
+                  </div>
+                  <div className="text-xs text-neutral-400 mt-1">Short shipped vs PO qty</div>
                 </div>
               </div>
 
               <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-950/60 text-xs space-y-2">
-                <h4 className="font-semibold text-neutral-200">Why OTIF dropped from 62.5% to 50%:</h4>
-                <ul className="list-disc list-inside space-y-1 text-neutral-400">
-                  <li>Bay 2 crane failure pushed 2 morning dispatches into 2+ hour delays.</li>
-                  <li>Koyambedu flyover bottleneck delayed the Hosur inter-city vehicle by 165 minutes.</li>
-                  <li>Customer QA inspector held Royal Enfield truck at gate for 90 minutes over missing hardness cert.</li>
+                <h4 className="font-semibold text-neutral-200">Live Failure Breakdown by Root Cause (Project 2):</h4>
+                <ul className="list-disc list-inside space-y-1 text-neutral-400 font-mono">
+                  {p2LiveMetrics.reasonStats.filter(r => r.count > 0).map(r => (
+                    <li key={r.reason}>
+                      <strong className="text-neutral-200">{r.reason}</strong>: {r.count} failed loads ({r.percentageOfFails}% of failures)
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>

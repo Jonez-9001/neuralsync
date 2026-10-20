@@ -30,6 +30,7 @@ export interface RulesConfig {
   startDate: string;
   endDate: string;
   unitLocation: string;
+  benchmarkMode?: 'per_tonne' | 'fixed_trip';
 }
 
 export interface LaneSummary {

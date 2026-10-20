@@ -221,6 +221,51 @@ export const CountSheet: React.FC<CountSheetProps> = ({
     });
   };
 
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
+  const [bulkPasteText, setBulkPasteText] = useState('');
+
+  const handleBulkPasteImport = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bulkPasteText.trim()) return;
+    const lines = bulkPasteText.trim().split('\n');
+    let count = 0;
+    lines.forEach((line) => {
+      const cols = line.includes('\t') ? line.split('\t') : line.split(',');
+      if (cols.length >= 2) {
+        const code = cols[0].trim();
+        const part = cols[1].trim();
+        if (!code || !part || code.toLowerCase() === 'code') return;
+        const spot = (cols[2]?.trim() || 'Counter');
+        const systemQty = Number(cols[3]?.replace(/[^0-9.-]/g, '')) || 10;
+        const physicalQty = Number(cols[4]?.replace(/[^0-9.-]/g, '')) || systemQty;
+        const cost = Number(cols[5]?.replace(/[^0-9.-]/g, '')) || 500;
+        const issuesPerMonth = Number(cols[6]?.replace(/[^0-9.-]/g, '')) || 5;
+        onAddItem({
+          code,
+          part,
+          spot,
+          systemQty,
+          physicalQty,
+          cost,
+          issuesPerMonth,
+          imageUrl: getPartImageUrl(code),
+        });
+        count++;
+      }
+    });
+    if (count > 0) {
+      setBulkPasteText('');
+      setShowBulkImportModal(false);
+    }
+  };
+
+  const discrepancyCount = items.filter((it) => (it.gapQty ?? 0) !== 0).length;
+  const hiddenFastCount = items.filter(
+    (it) => it.issuesPerMonth >= rules.fastMoverCutoff && it.spot.trim().toLowerCase() !== 'counter'
+  ).length;
+  const foundStockCount = items.filter((it) => (it.gapQty ?? 0) > 0).length;
+  const matchedCount = items.filter((it) => (it.gapQty ?? 0) === 0).length;
+
   const isEditable = activeRole === 'auditor' || activeRole === 'owner' || activeRole === 'counter_boy';
 
   return (
@@ -312,7 +357,7 @@ export const CountSheet: React.FC<CountSheetProps> = ({
                   : 'text-slate-400 hover:text-rose-300'
               }`}
             >
-              Discrepancies (6)
+              Discrepancies ({discrepancyCount})
             </button>
             <button
               onClick={() => setFilterMode('hidden_fast')}
@@ -322,7 +367,7 @@ export const CountSheet: React.FC<CountSheetProps> = ({
                   : 'text-slate-400 hover:text-violet-300'
               }`}
             >
-              Fast &amp; Hidden (4)
+              Fast &amp; Hidden ({hiddenFastCount})
             </button>
             <button
               onClick={() => setFilterMode('found_stock')}
@@ -332,7 +377,7 @@ export const CountSheet: React.FC<CountSheetProps> = ({
                   : 'text-slate-400 hover:text-cyan-300'
               }`}
             >
-              Found Stock (1)
+              Found Stock ({foundStockCount})
             </button>
             <button
               onClick={() => setFilterMode('matched')}
@@ -342,7 +387,7 @@ export const CountSheet: React.FC<CountSheetProps> = ({
                   : 'text-slate-400 hover:text-emerald-300'
               }`}
             >
-              Matched (9)
+              Matched ({matchedCount})
             </button>
             <button
               onClick={() => setFilterMode('low_stock')}
@@ -359,21 +404,16 @@ export const CountSheet: React.FC<CountSheetProps> = ({
         </div>
 
         {/* Legend & Add Action */}
-        <div className="flex items-center gap-3 self-end lg:self-auto">
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 hidden sm:flex">
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded bg-amber-400/20 border border-amber-400/50 inline-block"></span>
-              <span>Yellow = Hand Input</span>
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded bg-slate-800 border border-slate-700 inline-block"></span>
-              <span>White = Auto-Computed</span>
-            </span>
-          </div>
-
+        <div className="flex items-center gap-2 self-end lg:self-auto">
+          <button
+            onClick={() => setShowBulkImportModal(true)}
+            className="flex items-center gap-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold rounded-lg transition-all cursor-pointer"
+          >
+            <span>Bulk CSV / Paste</span>
+          </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition-all"
+            className="flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow-sm transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add SKU Row</span>
@@ -1056,6 +1096,64 @@ export const CountSheet: React.FC<CountSheetProps> = ({
                 >
                   Add to Audit
                 </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk CSV / Paste Import Modal */}
+      {showBulkImportModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+              <h3 className="text-base font-bold text-white">Bulk Import Spares (CSV / Excel Paste)</h3>
+              <button
+                onClick={() => setShowBulkImportModal(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleBulkPasteImport} className="space-y-3 text-xs">
+              <p className="text-slate-400 leading-relaxed">
+                Paste comma- or tab-separated rows from Tally / Excel in this column order:<br />
+                <code className="text-emerald-400 font-mono">Code, Part Name, Spot, System Qty, Hand Qty, Cost, Issues/Mo</code>
+              </p>
+              <textarea
+                rows={6}
+                value={bulkPasteText}
+                onChange={(e) => setBulkPasteText(e.target.value)}
+                placeholder={`SKU-201, Brake Disc Rotor, Back rack, 18, 15, 1450, 14\nSKU-202, Fork Oil Seal Kit, Counter, 40, 40, 320, 22`}
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg p-3 text-white font-mono text-xs focus:outline-none focus:border-emerald-500"
+              />
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setBulkPasteText(
+                      `SKU-201, Front Brake Disc Rotor, Back rack, 18, 15, 1450, 14\nSKU-202, Telescopic Fork Seal Kit, Counter, 40, 40, 320, 22\nSKU-203, 48V DC-DC Converter Module, Mezzanine, 12, 9, 2800, 11`
+                    )
+                  }
+                  className="text-emerald-400 hover:underline font-mono text-[11px] cursor-pointer"
+                >
+                  Load 3 Sample Rows
+                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkImportModal(false)}
+                    className="px-3 py-1.5 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-semibold cursor-pointer"
+                  >
+                    Import SKUs
+                  </button>
+                </div>
               </div>
             </form>
           </div>

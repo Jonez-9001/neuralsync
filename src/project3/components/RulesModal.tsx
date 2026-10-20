@@ -112,6 +112,47 @@ export const RulesModal: React.FC<RulesModalProps> = ({
             </div>
           </div>
 
+          {/* Rule 2B: Rate Benchmark Basis (Per-Tonne vs Fixed Vehicle Trip) */}
+          <div className="space-y-2.5 border-t border-slate-200 pt-5">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-semibold text-slate-900">
+                Freight Rate Benchmark Basis
+              </label>
+              <span className="text-xs font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                Counters Volume Objection
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Use <strong>Per-Tonne (₹/t)</strong> for heavy steel/forging loads, or switch to <strong>Fixed Lorry Trip (₹/trip)</strong> when transporters charge a flat vehicle rate for light/volumetric sheet-metal loads.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setRules(prev => ({ ...prev, benchmarkMode: 'per_tonne' }))}
+                className={`px-3 py-2 text-xs font-semibold rounded-lg border text-left transition ${
+                  (rules.benchmarkMode || 'per_tonne') === 'per_tonne'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <div className="font-bold">Per-Tonne Basis (₹/t)</div>
+                <div className="text-[10px] opacity-80 font-mono">Leak = Bill − (Best ₹/t × Tonnes)</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRules(prev => ({ ...prev, benchmarkMode: 'fixed_trip' }))}
+                className={`px-3 py-2 text-xs font-semibold rounded-lg border text-left transition ${
+                  rules.benchmarkMode === 'fixed_trip'
+                    ? 'bg-slate-900 text-white border-slate-900'
+                    : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <div className="font-bold">Fixed Vehicle Trip (₹/trip)</div>
+                <div className="text-[10px] opacity-80 font-mono">Leak = Bill − Lowest Clean Lorry Bill</div>
+              </button>
+            </div>
+          </div>
+
           {/* Rule 3: Audit Date Window */}
           <div className="space-y-3 border-t border-slate-200 pt-5">
             <label className="text-sm font-semibold text-slate-900">
