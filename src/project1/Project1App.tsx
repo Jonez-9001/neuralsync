@@ -191,6 +191,14 @@ export default function App() {
   // Bulk import
   const handleBulkImport = (newItems: StockItem[]) => {
     setItems(newItems);
+    const maxMoveDate = newItems
+      .map((i) => i.lastMovement)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    if (maxMoveDate && maxMoveDate > rules.asOfDate) {
+      setRules((prev) => ({ ...prev, asOfDate: maxMoveDate }));
+    }
     logAction('BULK_IMPORT', `Imported ${newItems.length} SKUs from external Tally export.`);
   };
 
@@ -329,6 +337,25 @@ export default function App() {
 
       {/* 2. Main Workspace Content Viewport */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 no-print">
+        {/* Strict P1 Scope Discipline Guardrail Banner */}
+        <div className="mb-5 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono text-[10px] font-bold uppercase tracking-wider shrink-0">
+              P1 Focus Only
+            </span>
+            <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+              Dead Cash Locked in Inventory (Idle &gt;{rules.deadThresholdDays}d, ABC Valuation, Carrying Burn &amp; Liquidation Recovery).
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-mono text-neutral-600 dark:text-neutral-400">
+            <span className="font-bold text-rose-600 dark:text-rose-400 uppercase">What P1 Does NOT Do:</span>
+            <span>❌ Production planning</span>
+            <span>❌ Purchase planning</span>
+            <span>❌ Dispatch tracking</span>
+            <span>❌ OTIF analysis</span>
+          </div>
+        </div>
+
         {activeTab === 'report' && (
           <OwnerReport
             items={displayItems}
