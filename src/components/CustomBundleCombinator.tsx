@@ -24,6 +24,7 @@ import Project2App from '../project2/Project2App';
 import Project3App from '../project3/Project3App';
 import Project4App from '../project4/Project4App';
 import Project5App from '../project5/Project5App';
+import { InteractiveDealCloser } from './InteractiveDealCloser';
 
 // Live Data Calculations across P1–P5
 import { AMBATTUR_FABRICATION_SAMPLE, DEFAULT_RULES as P1_DEFAULT_RULES } from '../project1/data/initialData';
@@ -179,6 +180,78 @@ export const STRATEGIC_BUNDLE_PRESETS: PresetBundle[] = [
       users: 'Factory Owner / Commercial Manager',
       script:
         '"Upload your monthly stock summary and lorry bills in 2 minutes to automatically generate your purchase freeze list and transporter rate-cap audit."',
+    },
+  },
+  {
+    id: 'p1_p2',
+    codeLabel: 'P1 + P2',
+    commercialName: 'Purchase-to-Dispatch Working Capital & SLA Loop',
+    tagline: 'Proves how buying/producing unscheduled slow stock (P1) starves cash & machine hours needed for urgent POs (P2).',
+    sequence: ['p1', 'p2'],
+    targetBuyer: 'Custom Fabrication, Machining & Stamping Plants with High Overtime & Late POs',
+    whyCrazyGood:
+      'Why is a factory simultaneously full of ₹10L+ in dead/slow inventory (P1) AND missing customer dispatch dates due to "Material Shortage / Machine Breakdown" (P2)? Because Production & Purchase are making unscheduled batch sizes that sit in P1 while starving the exact parts scheduled for today’s gate dispatch in P2!',
+    uniqueProductIdea:
+      '"PO-Linked Purchase Freeze & Gate Slot Sync": Freeze all buying on non-PO slow movers (P1) and reallocate 100% of working capital to this week’s P2 dispatch schedule.',
+    dfyAgencyPitch: {
+      price: '₹40,000 30-Day Working Capital + Dispatch Alignment Audit',
+      deliverable: 'Purchase Freeze Ledger (P1) cross-linked to 30-Day Late PO Root-Cause Pareto (P2).',
+      script:
+        '"You have ₹9.5 Lakhs tied up in slow/dead stock while your dispatch team missed 9 customer POs due to material and packing holds. We align your P1 purchase freeze list directly with your P2 gate schedule."',
+    },
+    directSaasPitch: {
+      price: '₹13,500 / month Plant Planning Suite',
+      users: 'Purchase Manager (P1) + PPC / Dispatch Head (P2)',
+      script:
+        '"Links your Tally Stock Aging directly to your Gate Dispatch Board so Purchase only buys what is scheduled to leave the gate."',
+    },
+  },
+  {
+    id: 'p3_p4',
+    codeLabel: 'P3 + P4',
+    commercialName: 'Spares Depot Shrinkage & Outbound Parcel Audit',
+    tagline: 'Built for Auto/EV Spares Distributors: Stops back-rack bin pilferage (P4) AND regional parcel/lorry overcharges (P3).',
+    sequence: ['p4', 'p3'],
+    targetBuyer: 'Regional Auto/EV Spares Distributors, Wholesalers & Aftermarket Depots',
+    whyCrazyGood:
+      'Spares distributors don’t manufacture—their entire margin is eaten by two silent killers: (1) high-value chargers, controllers, and brake pads disappearing from warehouse bins (P4), and (2) regional parcel/lorry transporters overcharging on daily dealer dispatches (P3). Merging P4 + P3 is a tailor-made profit shield for aftermarket depots.',
+    uniqueProductIdea:
+      '"The Aftermarket Depot Margin Shield": Pre-shutter morning bin verification (P4) + monthly transporter rate-card audit (P3).',
+    dfyAgencyPitch: {
+      price: '₹35,000 Depot Audit + 20% of Freight & Shrinkage Recovery',
+      deliverable: 'Top-200 Bin Variance Report (P4) + Regional Transporter Rate Benchmark Audit (P3).',
+      script:
+        '"In wholesale spares distribution, 3% bin shrinkage and 10% freight overbilling wipe out nearly a third of your net profit. We audit your bins and your lorry bills together in 72 hours."',
+    },
+    directSaasPitch: {
+      price: '₹11,500 / month Distributor Suite',
+      users: 'Depot Storekeeper (P4) + Dispatch Billing Clerk (P3)',
+      script:
+        '"Morning 15-SKU blind counter on mobile (P4) paired with automated corridor rate-cap checking on every outbound lorry bill (P3)."',
+    },
+  },
+  {
+    id: 'p1_p2_p4',
+    codeLabel: 'P4 ➔ P1 ➔ P2',
+    commercialName: 'Zero-Stoppage Plant Operations Trilogy',
+    tagline: 'Complete internal plant loop: Physical Bin Truth (P4) ➔ Working Capital Freeze (P1) ➔ 95%+ Strict Gate OTIF (P2).',
+    sequence: ['p4', 'p1', 'p2'],
+    targetBuyer: 'Tier-1 OEM Suppliers & Precision Engineering Plants (₹30Cr–₹150Cr)',
+    whyCrazyGood:
+      'Fixes the entire internal factory floor from stores to gate: P4 ensures physical bin counts match Tally and fast movers never stock out; P1 liquidates dead >180d stock to free cash; and P2 enforces strict on-time, in-full gate departures.',
+    uniqueProductIdea:
+      '"The 30-Day OEM Vendor-Rating Upgrade Program": Take a Tier-1 supplier from 72% OTIF to 94% OTIF while releasing ₹8L+ in trapped inventory.',
+    dfyAgencyPitch: {
+      price: '₹75,000 30-Day Plant Turnaround Sprint',
+      deliverable: 'Full Store Re-Slotting & Ghost-Stock Cleanup (P4) + Dead Stock Liquidation (P1) + Gate Clock OTIF Deployment (P2).',
+      script:
+        '"If an OEM customer is threatening to cut your vendor rating for late or short deliveries, we fix the root cause from your physical bins (P4) to your purchase ledger (P1) to your factory gate clock (P2) in 30 days."',
+    },
+    directSaasPitch: {
+      price: '₹19,500 / month Plant Ops OS',
+      users: 'Storekeeper (P4) + Purchase Head (P1) + Gate Guard & Plant Head (P2)',
+      script:
+        '"Complete shop-floor visibility from bin count to purchase freeze to gate departure timestamp."',
     },
   },
 ];
@@ -832,6 +905,15 @@ export const CustomBundleCombinator: React.FC<CustomBundleCombinatorProps> = ({
                 ))}
               </div>
             </div>
+
+            {/* Interactive Live Discovery Questionnaire, Auto-Recommender & Dual-Option Proposal Generator */}
+            <InteractiveDealCloser
+              onApplyRecommendedSequence={(seq, presetId) => {
+                setSelectedSequence(seq);
+                if (presetId) setActivePresetId(presetId);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            />
           </div>
         ) : (
           /* Render the selected engine directly inside the custom bundle */
