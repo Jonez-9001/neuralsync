@@ -26,7 +26,7 @@ export const PredictiveAnalytics: React.FC<PredictiveAnalyticsProps> = ({
 }) => {
   const shortages = computePredictiveShortages(items, rules);
 
-  // Group shrinkage by spot
+  // Group shrinkage by spot dynamically
   const shrinkageBySpot: Record<string, number> = {};
   items.forEach((item) => {
     if ((item.gapRupees ?? 0) < 0) {
@@ -35,12 +35,27 @@ export const PredictiveAnalytics: React.FC<PredictiveAnalyticsProps> = ({
     }
   });
 
+  const sortedSpots = Object.entries(shrinkageBySpot).sort((a, b) => b[1] - a[1]);
+  const topSpotName = sortedSpots[0]?.[0] || 'Back rack';
+  const topSpotValue = sortedSpots[0]?.[1] || 0;
+
   // Slotting efficiency: Fast movers at counter vs total fast movers
   const totalFastMovers = items.filter((it) => it.issuesPerMonth >= rules.fastMoverCutoff);
   const fastMoversAtCounter = totalFastMovers.filter((it) => it.spot.trim().toLowerCase() === 'counter');
   const slottingScore = totalFastMovers.length > 0 
     ? Math.round((fastMoversAtCounter.length / totalFastMovers.length) * 100)
     : 100;
+
+  // Indian MSME Reality Metrics: Ghost Stock (Book > Physical) & Emergency Spot-Buy / Lost Counter Margin
+  const ghostStockItems = items.filter((it) => it.physicalQty < it.bookQty);
+  const criticalFastShortages = shortages.filter((s) => s.severity === 'critical');
+  // In Indian EV/Spares depots, running out of a fast-moving A-item forces either a lost counter job (35% margin loss) or a 22% emergency local trader purchase premium
+  const annualGhostShrinkageBleed = summary.shelfShortRupees * 4; // Quarterly cycle count extrapolated if unchecked
+  const annualEmergencyPurchaseAndLostJobBleed = criticalFastShortages.reduce((acc, s) => {
+    const matched = items.find((i) => i.code === s.code);
+    const unitCost = matched?.unitCost || 500;
+    return acc + Math.round(s.monthlyVelocity * unitCost * 0.25 * 12);
+  }, 0);
 
   return (
     <div className="space-y-4">
@@ -78,22 +93,25 @@ export const PredictiveAnalytics: React.FC<PredictiveAnalyticsProps> = ({
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="font-semibold uppercase tracking-wider text-[10px]">
-              Highest Shrinkage Zone
+              Highest Shrinkage Zone (Blind Spot)
             </span>
             <ShieldAlert className="w-4 h-4 text-rose-400" />
           </div>
           <div className="my-2">
             <div className="text-2xl font-black text-rose-400 font-mono">
-              Back Rack: {formatINR(shrinkageBySpot['Back rack'] || 0)}
+              {topSpotName}: {formatINR(topSpotValue)}
             </div>
             <div className="text-xs text-slate-300 mt-0.5">
-              Charger units missing where customer cannot see them
+              {ghostStockItems.length} SKUs have Tally Ghost Stock (Book &gt; Physical Hand Count)
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <span>Mezzanine: {formatINR(shrinkageBySpot['Mezzanine'] || 0)}</span>
-            <span>•</span>
-            <span>Drawer: {formatINR(shrinkageBySpot['Drawer'] || 0)}</span>
+            {sortedSpots.slice(1, 3).map(([spot, val], idx) => (
+              <React.Fragment key={spot}>
+                {idx > 0 && <span>•</span>}
+                <span>{spot}: {formatINR(val)}</span>
+              </React.Fragment>
+            ))}
           </div>
         </div>
 
@@ -107,14 +125,43 @@ export const PredictiveAnalytics: React.FC<PredictiveAnalyticsProps> = ({
           </div>
           <div className="my-2">
             <div className="text-2xl font-black text-amber-400 font-mono">
-              {shortages.filter((s) => s.severity === 'critical').length} SKUs &lt;15 Days
+              {criticalFastShortages.length} SKUs &lt;15 Days
             </div>
             <div className="text-xs text-slate-300 mt-0.5">
-              Brake pads &amp; chargers will run dry before next cycle
+              High-velocity parts about to cause service bay / counter turn-aways
             </div>
           </div>
           <div className="text-[11px] text-emerald-400 font-medium">
-            Automated purchase reorder draft ready
+            Est. Spot-Buy / Turn-Away Risk: {formatINR(annualEmergencyPurchaseAndLostJobBleed)}/yr
+          </div>
+        </div>
+      </div>
+
+      {/* Indian MSME Promoter Reality Panel: Ghost Stock & Emergency Spot-Buy Cost (Not Fake Walking Payroll) */}
+      <div className="bg-gradient-to-r from-rose-950/30 via-slate-900 to-amber-950/20 border border-rose-500/30 rounded-xl p-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[10px] font-mono uppercase font-bold">
+              Indian MSME Promoter Commercial Case (Why Owners Pay For Bin Audits)
+            </div>
+            <h3 className="text-sm font-bold text-white">
+              Stop Pitching &ldquo;Walking Distance Wage Savings&rdquo; — Pitch Ghost-Stock Pilferage &amp; Bay Stoppage Prevention
+            </h3>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Indian store helpers are paid a fixed monthly salary, so walking fewer steps does not reduce payroll. Promoters pay for <strong>BinAudit</strong> because Tally currently lies about <strong>{ghostStockItems.length} SKUs</strong> (showing stock on computer when the shelf is short by <strong>{formatINR(summary.shelfShortRupees)}</strong>), causing unrecorded pilferage/scrap and forcing 25% emergency local-market purchases when fast movers hit zero.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 shrink-0">
+            <div className="bg-slate-950/90 border border-rose-500/30 rounded-lg p-3 text-right">
+              <div className="text-[10px] font-mono uppercase text-slate-400">Annualized Unchecked Shrinkage</div>
+              <div className="text-lg font-black font-mono text-rose-400">{formatINR(annualGhostShrinkageBleed)}/yr</div>
+              <div className="text-[10px] text-slate-500">Unbilled issues / theft / damage</div>
+            </div>
+            <div className="bg-slate-950/90 border border-amber-500/30 rounded-lg p-3 text-right">
+              <div className="text-[10px] font-mono uppercase text-slate-400">Spot-Buy &amp; Lost Bay Margin</div>
+              <div className="text-lg font-black font-mono text-amber-400">{formatINR(annualEmergencyPurchaseAndLostJobBleed)}/yr</div>
+              <div className="text-[10px] text-slate-500">From {criticalFastShortages.length} critical stockout SKUs</div>
+            </div>
           </div>
         </div>
       </div>
