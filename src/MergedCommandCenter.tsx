@@ -22,6 +22,7 @@ import Project2App from './project2/Project2App';
 import Project3App from './project3/Project3App';
 import Project4App from './project4/Project4App';
 import Project5App from './project5/Project5App';
+import { RecoveryActionDocsGenerator } from './components/RecoveryActionDocsGenerator';
 
 // P1 imports
 import { AMBATTUR_FABRICATION_SAMPLE, DEFAULT_RULES as P1_DEFAULT_RULES } from './project1/data/initialData';
@@ -987,6 +988,9 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
               </div>
             </div>
           </div>
+
+          {/* 1-Click Live Cash-Recovery Execution Documents (Debit Notes, Liquidation RFQs, Reorder Indents) */}
+          <RecoveryActionDocsGenerator />
         </main>
       )}
     </div>
