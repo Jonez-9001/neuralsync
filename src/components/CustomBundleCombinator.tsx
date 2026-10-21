@@ -25,6 +25,7 @@ import Project3App from '../project3/Project3App';
 import Project4App from '../project4/Project4App';
 import Project5App from '../project5/Project5App';
 import { InteractiveDealCloser } from './InteractiveDealCloser';
+import { RecoveryActionDocsGenerator } from './RecoveryActionDocsGenerator';
 
 // Live Data Calculations across P1–P5
 import { AMBATTUR_FABRICATION_SAMPLE, DEFAULT_RULES as P1_DEFAULT_RULES } from '../project1/data/initialData';
@@ -914,6 +915,9 @@ export const CustomBundleCombinator: React.FC<CustomBundleCombinatorProps> = ({
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             />
+
+            {/* 1-Click Live Cash-Recovery Execution Documents (Debit Notes, Liquidation RFQs, Reorder Indents) */}
+            <RecoveryActionDocsGenerator />
           </div>
         ) : (
           /* Render the selected engine directly inside the custom bundle */
