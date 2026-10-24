@@ -47,13 +47,13 @@ export const PredictiveAnalytics: React.FC<PredictiveAnalyticsProps> = ({
     : 100;
 
   // Indian MSME Reality Metrics: Ghost Stock (Book > Physical) & Emergency Spot-Buy / Lost Counter Margin
-  const ghostStockItems = items.filter((it) => it.physicalQty < it.bookQty);
+  const ghostStockItems = items.filter((it) => it.physicalQty < it.systemQty);
   const criticalFastShortages = shortages.filter((s) => s.severity === 'critical');
   // In Indian EV/Spares depots, running out of a fast-moving A-item forces either a lost counter job (35% margin loss) or a 22% emergency local trader purchase premium
   const annualGhostShrinkageBleed = summary.shelfShortRupees * 4; // Quarterly cycle count extrapolated if unchecked
   const annualEmergencyPurchaseAndLostJobBleed = criticalFastShortages.reduce((acc, s) => {
     const matched = items.find((i) => i.code === s.code);
-    const unitCost = matched?.unitCost || 500;
+    const unitCost = matched?.cost || 500;
     return acc + Math.round(s.monthlyVelocity * unitCost * 0.25 * 12);
   }, 0);
 
