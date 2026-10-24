@@ -13,6 +13,7 @@ import { GainShareProposalView } from './components/GainShareProposalView';
 import { CommercialMonetizationView } from './components/CommercialMonetizationView';
 import { TransporterObjectionView } from './components/TransporterObjectionView';
 import { BatchReconcilerView } from './components/BatchReconcilerView';
+import { ProfitProtectionEngineV2 } from './components/ProfitProtectionEngineV2';
 import { INITIAL_TRIPS, DEFAULT_RULES, SCALE_PROFILES } from './data/defaultData';
 import { calculateAuditMetrics } from './utils/auditCalculations';
 import { Trip, RulesConfig, ScaleProfile } from './types/freight';
@@ -230,20 +231,29 @@ export default function App() {
       {/* Main Viewport Content */}
       <main className="flex-1">
         {activeTab === 'report' && (
-          <OwnerReportView
-            totals={auditMetrics.totals}
-            laneSummaries={auditMetrics.laneSummaries}
-            transporterSummaries={auditMetrics.transporterSummaries}
-            trips={auditMetrics.calculatedTrips}
-            rules={rules}
-            currentScale={currentScale}
-            onChangeScale={setCurrentScale}
-            onNavigateToTrips={handleNavigateToTrips}
-            onNavigateToDossier={() => setActiveTab('dossier')}
-            onNavigateToProposal={() => setActiveTab('proposal')}
-            onNavigateToIngestion={() => setActiveTab('reconcile')}
-            onNavigateToObjections={() => setActiveTab('objections')}
-          />
+          <>
+            <OwnerReportView
+              totals={auditMetrics.totals}
+              laneSummaries={auditMetrics.laneSummaries}
+              transporterSummaries={auditMetrics.transporterSummaries}
+              trips={auditMetrics.calculatedTrips}
+              rules={rules}
+              currentScale={currentScale}
+              onChangeScale={setCurrentScale}
+              onNavigateToTrips={handleNavigateToTrips}
+              onNavigateToDossier={() => setActiveTab('dossier')}
+              onNavigateToProposal={() => setActiveTab('proposal')}
+              onNavigateToIngestion={() => setActiveTab('reconcile')}
+              onNavigateToObjections={() => setActiveTab('objections')}
+            />
+            <ProfitProtectionEngineV2
+              trips={auditMetrics.calculatedTrips}
+              laneSummaries={auditMetrics.laneSummaries}
+              transporterSummaries={auditMetrics.transporterSummaries}
+              totalFreightPaid={auditMetrics.totals.freightPaid}
+              totalLeakFound={auditMetrics.totals.totalLeak}
+            />
+          </>
         )}
 
         {activeTab === 'trips' && (
