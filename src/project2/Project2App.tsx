@@ -27,6 +27,7 @@ import { DatabaseManagerModal } from './components/DatabaseManagerModal';
 import { SecurityAuditModal } from './components/SecurityAuditModal';
 import { PinPromptModal } from './components/PinPromptModal';
 import { RndLab } from './components/RndLab';
+import { CustomerPromiseEngineV2 } from './components/CustomerPromiseEngineV2';
 import { INITIAL_DISPATCHES, INITIAL_RULES } from './data/initialData';
 import { INITIAL_WORKSPACES, INITIAL_SECURITY_CONFIG, INITIAL_AUDIT_LOGS } from './data/factoryWorkspaces';
 import { DispatchRow, RulesConfig, UserRole } from './types/otif';
@@ -426,19 +427,27 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {currentTab === 'report' && (
-          <OwnerReport
-            metrics={metrics}
-            rules={rules}
-            dispatches={dispatches}
-            onNavigateToSheet={handleNavigateToSheet}
-            onNavigateToDrill={() => setCurrentTab('drill')}
-            onOpenROICalculator={() => setIsROICalculatorOpen(true)}
-            onOpenWhatIfSimulator={() => setIsWhatIfSimulatorOpen(true)}
-            onOpenCAPA8D={() => setIsCAPA8DOpen(true)}
-            onOpenCertificate={(dispatch) => setSelectedCertificateDispatch(dispatch)}
-            onOpenPipeline={() => setIsPipelineOpen(true)}
-            onOpenRndLab={() => setCurrentTab('rnd')}
-          />
+          <>
+            <OwnerReport
+              metrics={metrics}
+              rules={rules}
+              dispatches={dispatches}
+              onNavigateToSheet={handleNavigateToSheet}
+              onNavigateToDrill={() => setCurrentTab('drill')}
+              onOpenROICalculator={() => setIsROICalculatorOpen(true)}
+              onOpenWhatIfSimulator={() => setIsWhatIfSimulatorOpen(true)}
+              onOpenCAPA8D={() => setIsCAPA8DOpen(true)}
+              onOpenCertificate={(dispatch) => setSelectedCertificateDispatch(dispatch)}
+              onOpenPipeline={() => setIsPipelineOpen(true)}
+              onOpenRndLab={() => setCurrentTab('rnd')}
+            />
+            <CustomerPromiseEngineV2
+              dispatches={dispatches}
+              rules={rules}
+              metrics={metrics}
+              onFilterCustomer={(customer) => handleNavigateToSheet(customer, '')}
+            />
+          </>
         )}
 
         {currentTab === 'sheet' && (
