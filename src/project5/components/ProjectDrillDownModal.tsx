@@ -141,6 +141,19 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
     }
   })();
 
+  const liveUnpaidBills: UnpaidBill[] = (() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('p5_unpaid_bills_v1') || 'null');
+      if (Array.isArray(saved) && saved.length > 0) return saved;
+    } catch {}
+    return SAMPLE_UNPAID_BILLS;
+  })();
+
+  const liveUnpaidTotalRupees =
+    localStorage.getItem('p5_unpaid_bills_v1')
+      ? liveUnpaidBills.reduce((sum, b) => sum + (b.amountRupees || 0), 0)
+      : towerData.unpaidBillsRupees;
+
   const freightPerTrip = towerData.tripsCount > 0 
     ? towerData.freightPaidRupees / towerData.tripsCount 
     : 0;
@@ -193,7 +206,7 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
     {
       id: 6,
       title: 'Unpaid Bills (Tally Outstandings)',
-      headline: `₹${towerData.unpaidBillsRupees.toLocaleString('en-IN')}`,
+      headline: `₹${liveUnpaidTotalRupees.toLocaleString('en-IN')}`,
       sub: `Customers holding cash older than normal credit (${towerData.normalCreditDays} days). Excludes current week invoices.`,
       icon: IndianRupee,
       color: 'text-red-400',
@@ -574,7 +587,7 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-800/60 font-mono">
-                    {SAMPLE_UNPAID_BILLS.map((bill) => (
+                    {liveUnpaidBills.map((bill) => (
                       <tr key={bill.id} className="hover:bg-neutral-800/30 transition-colors">
                         <td className="py-2.5 px-3 font-sans">
                           <div className="font-bold text-neutral-200">{bill.customerName}</div>
@@ -586,18 +599,23 @@ export const ProjectDrillDownModal: React.FC<ProjectDrillDownModalProps> = ({
                         <td className="py-2.5 px-3 text-right font-bold text-white">{formatINR(bill.amountRupees)}</td>
                         <td className="py-2.5 px-3 font-sans">
                           <button
-                            onClick={() => alert(`WhatsApp payment reminder dispatched for ${bill.invoiceNo} (${formatINR(bill.amountRupees)})`)}
-                            className="px-2 py-1 text-[11px] font-medium rounded bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30 flex items-center gap-1"
+                            onClick={() => {
+                              const msg = encodeURIComponent(
+                                `Dear ${bill.customerName}, gentle reminder regarding Invoice ${bill.invoiceNo} for ${formatINR(bill.amountRupees)} (overdue by ${bill.daysOverdue} days past normal credit). Kindly share UTR / NEFT confirmation today.`
+                              );
+                              window.open(`https://wa.me/?text=${msg}`, '_blank');
+                            }}
+                            className="px-2 py-1 text-[11px] font-medium rounded bg-emerald-600/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-600/30 flex items-center gap-1 cursor-pointer"
                           >
                             <Send className="w-3 h-3" />
-                            <span>Remind</span>
+                            <span>WhatsApp Remind</span>
                           </button>
                         </td>
                       </tr>
                     ))}
                     <tr className="font-bold border-t-2 border-neutral-700 bg-neutral-950/50">
                       <td colSpan={4} className="py-3 px-3 text-right font-sans">Total Overdue ({`>${towerData.normalCreditDays}d`}):</td>
-                      <td className="py-3 px-3 text-right text-rose-400 text-sm font-mono">{formatINR(towerData.unpaidBillsRupees)}</td>
+                      <td className="py-3 px-3 text-right text-rose-400 text-sm font-mono">{formatINR(liveUnpaidTotalRupees)}</td>
                       <td></td>
                     </tr>
                   </tbody>

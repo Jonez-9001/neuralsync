@@ -20,7 +20,7 @@ interface MultiDeviceSyncModalProps {
   onSyncImported: () => void;
 }
 
-const SYNC_KEYS = [
+export const SYNC_KEYS = [
   'p1_stock_items',
   'p1_stock_rules',
   'otif_workspaces_v2',
@@ -30,6 +30,8 @@ const SYNC_KEYS = [
   'binaudit_skus_v1',
   'binaudit_rules_v1',
   'monday_control_tower_v1',
+  'monday_tower_data_v1',
+  'p5_unpaid_bills_v1',
 ];
 
 export const MultiDeviceSyncModal: React.FC<MultiDeviceSyncModalProps> = ({
@@ -38,6 +40,7 @@ export const MultiDeviceSyncModal: React.FC<MultiDeviceSyncModalProps> = ({
   onSyncImported,
 }) => {
   const [copiedPacket, setCopiedPacket] = useState(false);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [incomingPacket, setIncomingPacket] = useState('');
   const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('suite_cloud_webhook_url') || '');
   const [statusMessage, setStatusMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -72,6 +75,18 @@ export const MultiDeviceSyncModal: React.FC<MultiDeviceSyncModalProps> = ({
       text: 'Copied portable 5-Engine Field Sync Code! Send via WhatsApp/Email from the Gate Tablet or Store Phone to the Owner Laptop.',
     });
     setTimeout(() => setCopiedPacket(false), 3000);
+  };
+
+  const handleCopyClientShareLink = () => {
+    const packet = generateSyncPacket();
+    const url = `${window.location.origin}${window.location.pathname}?client_sync=${encodeURIComponent(packet)}`;
+    navigator.clipboard.writeText(url);
+    setCopiedShareLink(true);
+    setStatusMessage({
+      type: 'ok',
+      text: 'Copied 1-Click Shareable Client Link! When the Factory Owner opens this link, it automatically hydrates your audited data in Brand-Named Client Presentation Mode.',
+    });
+    setTimeout(() => setCopiedShareLink(false), 3000);
   };
 
   const handleDownloadJsonFile = () => {
@@ -214,14 +229,21 @@ export const MultiDeviceSyncModal: React.FC<MultiDeviceSyncModalProps> = ({
                 className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-sm cursor-pointer transition"
               >
                 {copiedPacket ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedPacket ? 'Copied Field Sync Code!' : 'Copy Field Sync Code (For WhatsApp / Clipboard)'}</span>
+                <span>{copiedPacket ? 'Copied Field Sync Code!' : 'Copy Field Sync Code (WhatsApp)'}</span>
+              </button>
+              <button
+                onClick={handleCopyClientShareLink}
+                className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition"
+              >
+                {copiedShareLink ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+                <span>{copiedShareLink ? 'Copied Client URL!' : 'Copy 1-Click Client Presentation Link'}</span>
               </button>
               <button
                 onClick={handleDownloadJsonFile}
                 className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition"
               >
                 <DownloadCloud className="w-4 h-4 text-cyan-400" />
-                <span>Download Full .JSON Backup</span>
+                <span>Download .JSON</span>
               </button>
             </div>
           </div>

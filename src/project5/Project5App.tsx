@@ -57,12 +57,14 @@ export default function App({ onJumpToEngine }: Project5AppProps = {}) {
   const [isHabitGuideOpen, setIsHabitGuideOpen] = useState<boolean>(false);
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
-  // Sync state to local cache for offline reliability
+  // Sync state to local cache for offline reliability (both keys so all cross-engine views stay synced)
   useEffect(() => {
-    localStorage.setItem('monday_tower_data_v1', JSON.stringify(towerData));
+    const serialized = JSON.stringify(towerData);
+    localStorage.setItem('monday_tower_data_v1', serialized);
+    localStorage.setItem('monday_control_tower_v1', serialized);
   }, [towerData]);
 
-  const handlePullLiveFromP1ToP4 = () => {
+  const handlePullLiveFromP1ToP4 = (silent = false) => {
     try {
       // P1 Dead Cash
       const p1Items = JSON.parse(localStorage.getItem('p1_stock_items') || 'null') || AMBATTUR_FABRICATION_SAMPLE;
@@ -95,9 +97,15 @@ export default function App({ onJumpToEngine }: Project5AppProps = {}) {
       const p4Shortages = computePredictiveShortages(p4Items, p4Rules);
       const stockoutRiskCount = p4Shortages.filter(s => s.severity === 'critical' || s.severity === 'warning').length || 4;
 
+      // P5 Unpaid Bills (if imported via Smart Tally Mapper)
+      const savedBills = JSON.parse(localStorage.getItem('p5_unpaid_bills_v1') || 'null');
+      const liveUnpaidRupees = Array.isArray(savedBills) && savedBills.length > 0
+        ? savedBills.reduce((s: number, b: any) => s + (Number(b.amountRupees) || 0), 0)
+        : null;
+
       setTowerData(prev => ({
         ...prev,
-        lastUpdated: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' (Live P1–P4 Sync)',
+        lastUpdated: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + ' (Live P1–P5 Sync)',
         deadCashRupees: p1Summary.deadCash,
         stockoutRiskCount,
         dispatchesCount: p2Metrics.totalDispatches,
@@ -105,13 +113,24 @@ export default function App({ onJumpToEngine }: Project5AppProps = {}) {
         ordersLateCount: p2Metrics.failsLateOnly + p2Metrics.failsLateAndShort,
         freightPaidRupees: p3Audit.totals.freightPaid,
         tripsCount: p3Audit.totals.totalTrips,
+        ...(liveUnpaidRupees !== null ? { unpaidBillsRupees: liveUnpaidRupees } : {}),
       }));
-      setSyncToast('Pulled live numbers from P1 (Dead Stock), P2 (Gate OTIF), P3 (Freight), and P4 (Bin Audit)!');
-      setTimeout(() => setSyncToast(null), 3500);
+      if (!silent) {
+        setSyncToast('Pulled live numbers from P1 (Cash Recovery), P2 (Promise OTIF), P3 (Profit Protection), P4 (Warehouse), and P5 (Debtors)!');
+        setTimeout(() => setSyncToast(null), 3500);
+      }
     } catch (err) {
       console.warn('Failed to sync live P1-P4 data', err);
     }
   };
+
+  // Auto-sync live metrics on mount and when Smart Mapper / other tabs update localStorage
+  useEffect(() => {
+    handlePullLiveFromP1ToP4(true);
+    const onStorage = () => handlePullLiveFromP1ToP4(true);
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
 
   const t = TRANSLATIONS[language];
 
@@ -147,7 +166,7 @@ export default function App({ onJumpToEngine }: Project5AppProps = {}) {
             </span>
           </div>
           <button
-            onClick={handlePullLiveFromP1ToP4}
+            onClick={() => handlePullLiveFromP1ToP4(false)}
             className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs flex items-center gap-1.5 cursor-pointer transition shadow-sm"
           >
             <RefreshCw className="w-3.5 h-3.5" />
