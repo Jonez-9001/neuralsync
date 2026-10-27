@@ -398,14 +398,14 @@ export const Header: React.FC<HeaderProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-base font-bold tracking-tight text-white">
-                Dispatch OTIF Enterprise Engine
+                Customer Promise Reliability Engine
               </h1>
-              <span className="px-2 py-0.5 text-[9px] uppercase font-bold tracking-wider rounded bg-slate-800 text-slate-300 border border-slate-700">
-                Live Audit System
+              <span className="px-2 py-0.5 text-[9px] uppercase font-bold tracking-wider rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                P2 • Revenue &amp; Service Protection
               </span>
             </div>
             <p className="text-xs text-slate-400">
-              Autonomous Gate-Out Verification &amp; OEM SLA Defense Platform
+              Customer Fulfillment, Gate-Out Verification &amp; OEM Revenue Protection Tower
             </p>
           </div>
         </div>

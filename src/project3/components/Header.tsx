@@ -32,10 +32,10 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Zone 1: Single text element wordmark */}
           <div className="flex items-center gap-3">
             <span className="text-lg font-bold tracking-tight text-slate-900 cursor-pointer" onClick={() => setActiveTab('report')}>
-              Freight Leak Audit
+              Profit Protection Engine
             </span>
-            <span className="hidden lg:inline-block text-xs font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-              Ambattur & Tier-1 Clusters
+            <span className="hidden lg:inline-block text-xs font-mono font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+              P3 • Freight Leak Audit
             </span>
           </div>
 

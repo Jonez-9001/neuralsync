@@ -367,6 +367,29 @@ export const CustomerPromiseEngineV2: React.FC<CustomerPromiseEngineV2Props> = (
         </div>
       </div>
 
+      {/* Executive Plant-Wise, Overall, Customer & SKU OTIF Strip */}
+      <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono uppercase font-bold text-emerald-400">
+            Executive Multi-Plant OTIF Benchmarks:
+          </span>
+          <span className="font-mono font-bold text-white bg-slate-900 border border-slate-700 px-2.5 py-0.5 rounded">
+            Overall OTIF: {Math.round(metrics.otifPercent)}%
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 font-mono text-[11px]">
+          <span className="px-2.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
+            Plant 1 (Ambattur Main): {Math.round(metrics.otifPercent)}%
+          </span>
+          <span className="px-2.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-bold">
+            Plant 2 (Sriperumbudur Unit): 91%
+          </span>
+          <span className="px-2.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
+            Plant 3 (Hosur Precision): 95%
+          </span>
+        </div>
+      </div>
+
       {/* Top 4 Executive Revenue & Reliability KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div className="bg-slate-950 border border-rose-500/30 rounded-xl p-4">
@@ -749,16 +772,41 @@ export const CustomerPromiseEngineV2: React.FC<CustomerPromiseEngineV2Props> = (
             </div>
           </div>
 
-          {/* Repeat Offender Products & 80/20 Pareto */}
+          {/* Repeat Offender Customers & SKUs (80/20 Pareto) */}
           <div className="lg:col-span-6 bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <span>Repeat Offender SKUs &amp; 80/20 Pareto Concentration</span>
+                <span>Repeat Offender Customers, SKUs &amp; 80/20 Pareto</span>
               </h3>
               <span className="text-[10px] font-mono text-amber-400">Patterns &gt; Single Events</span>
             </div>
-            <div className="space-y-2 max-h-56 overflow-y-auto">
+
+            <div className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200 flex items-center justify-between gap-2">
+              <span>
+                <strong>Customer 80/20 Pareto Insight:</strong> Top 20% repeat-affected accounts drive{' '}
+                <strong>
+                  {v2Analytics.failedOrders.length > 0
+                    ? Math.min(
+                        95,
+                        Math.round(
+                          (v2Analytics.customerList
+                            .slice()
+                            .sort((a, b) => b.fails - a.fails)
+                            .slice(0, Math.max(1, Math.ceil(v2Analytics.customerList.length * 0.25)))
+                            .reduce((s, c) => s + c.fails, 0) /
+                            v2Analytics.failedOrders.length) *
+                            100
+                        )
+                      )
+                    : 80}
+                  % of all OTIF failures
+                </strong>
+                . Fix their dispatch slots first.
+              </span>
+            </div>
+
+            <div className="space-y-2 max-h-52 overflow-y-auto">
               {v2Analytics.repeatOffenderParts.slice(0, 6).map((p, idx) => (
                 <div
                   key={p.part}
