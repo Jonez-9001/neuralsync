@@ -16,7 +16,9 @@ import {
   RefreshCw,
   Lock,
   Unlock,
-  Briefcase
+  Briefcase,
+  Building2,
+  Plus
 } from 'lucide-react';
 import Project1App from './project1/Project1App';
 import Project2App from './project2/Project2App';
@@ -26,7 +28,7 @@ import Project5App from './project5/Project5App';
 import { MergedCommandCenter } from './MergedCommandCenter';
 import { CustomBundleCombinator } from './components/CustomBundleCombinator';
 import { SmartTallyMapperModal, TargetEngineType } from './components/SmartTallyMapperModal';
-import { MultiDeviceSyncModal } from './components/MultiDeviceSyncModal';
+import { MultiDeviceSyncModal, SYNC_KEYS } from './components/MultiDeviceSyncModal';
 
 type ArchitectureVersion =
   | 'standalone_p1'
@@ -37,7 +39,15 @@ type ArchitectureVersion =
   | 'custom_combos'
   | 'merged_suite';
 
+interface ClientWorkspaceSlot {
+  id: string;
+  name: string;
+  snapshots: Record<string, string>;
+}
+
 const STORAGE_KEY_VERSION_MODE = 'industrial_architecture_version_mode_v6';
+const STORAGE_KEY_CLIENTS = 'suite_client_workspaces_v1';
+const STORAGE_KEY_ACTIVE_CLIENT = 'suite_active_client_id_v1';
 
 export default function App() {
   const [versionMode, setVersionMode] = useState<ArchitectureVersion>(() => {
@@ -60,13 +70,31 @@ export default function App() {
     return 'custom_combos';
   });
 
-  // Commercial Rebranding Mode (P1-P5 Codes vs Enterprise Commercial Names)
+  // Commercial Rebranding Mode (P1-P5 Codes vs Manufacturing Control Tower Commercial Names)
   const [useCommercialNames, setUseCommercialNames] = useState<boolean>(() => {
     return localStorage.getItem('suite_commercial_names_v1') === 'true';
   });
 
   // Client Presentation Lock (Hides top multi-project switcher bar during live client screen-share)
   const [isClientLocked, setIsClientLocked] = useState<boolean>(false);
+
+  // Multi-Client Workspace Switcher (Prevents overwriting Client A when auditing Client B)
+  const [clientSlots, setClientSlots] = useState<ClientWorkspaceSlot[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_CLIENTS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      { id: 'client-ambattur', name: 'Ambattur Baseline Unit', snapshots: {} },
+    ];
+  });
+
+  const [activeClientId, setActiveClientId] = useState<string>(() => {
+    return localStorage.getItem(STORAGE_KEY_ACTIVE_CLIENT) || 'client-ambattur';
+  });
 
   // Universal Modals (Dirty Tally Mapper & Multi-Device Sync Hub)
   const [showSmartMapper, setShowSmartMapper] = useState<boolean>(false);
@@ -77,9 +105,7 @@ export default function App() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_VERSION_MODE, versionMode);
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, [versionMode]);
 
   useEffect(() => {
@@ -87,6 +113,40 @@ export default function App() {
       localStorage.setItem('suite_commercial_names_v1', String(useCommercialNames));
     } catch {}
   }, [useCommercialNames]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_CLIENTS, JSON.stringify(clientSlots));
+      localStorage.setItem(STORAGE_KEY_ACTIVE_CLIENT, activeClientId);
+    } catch {}
+  }, [clientSlots, activeClientId]);
+
+  // Hydrate 1-Click Shareable Client Link (?client_sync=...) on mount
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get('client_sync');
+      if (encoded) {
+        const decoded = decodeURIComponent(escape(atob(encoded)));
+        const parsed = JSON.parse(decoded);
+        const engines = parsed.engines || parsed;
+        SYNC_KEYS.forEach((k) => {
+          if (engines[k] !== undefined) {
+            localStorage.setItem(
+              k,
+              typeof engines[k] === 'string' ? engines[k] : JSON.stringify(engines[k])
+            );
+          }
+        });
+        setUseCommercialNames(true);
+        setIsClientLocked(true);
+        setSyncRefreshKey((k) => k + 1);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    } catch (err) {
+      console.warn('Failed to hydrate client_sync URL param', err);
+    }
+  }, []);
 
   // Listen for cross-tab BroadcastChannel & storage updates so Gate Tablet (P2) & Store Count Sheet (P4) sync live
   useEffect(() => {
@@ -105,6 +165,58 @@ export default function App() {
     };
   }, []);
 
+  const captureCurrentSnapshots = (): Record<string, string> => {
+    const snap: Record<string, string> = {};
+    SYNC_KEYS.forEach((k) => {
+      const val = localStorage.getItem(k);
+      if (val !== null) snap[k] = val;
+    });
+    return snap;
+  };
+
+  const handleSwitchClientSlot = (nextClientId: string) => {
+    if (nextClientId === activeClientId) return;
+    const outgoingSnap = captureCurrentSnapshots();
+    const updatedSlots = clientSlots.map((slot) =>
+      slot.id === activeClientId ? { ...slot, snapshots: outgoingSnap } : slot
+    );
+    const targetSlot = updatedSlots.find((s) => s.id === nextClientId);
+
+    // Clear active keys and restore target client's snapshot (or clean baseline defaults)
+    SYNC_KEYS.forEach((k) => localStorage.removeItem(k));
+    if (targetSlot && targetSlot.snapshots) {
+      Object.entries(targetSlot.snapshots).forEach(([k, val]) => {
+        localStorage.setItem(k, val);
+      });
+    }
+
+    setClientSlots(updatedSlots);
+    setActiveClientId(nextClientId);
+    setSyncRefreshKey((k) => k + 1);
+    window.dispatchEvent(new Event('storage'));
+  };
+
+  const handleAddNewClientSlot = () => {
+    const name = window.prompt('Enter new Factory / Client Workspace name (e.g., "Sri Murugan Auto Parts - Hosur"):');
+    if (!name || !name.trim()) return;
+    const outgoingSnap = captureCurrentSnapshots();
+    const newId = `client-${Date.now()}`;
+    const newSlot: ClientWorkspaceSlot = {
+      id: newId,
+      name: name.trim(),
+      snapshots: {},
+    };
+    const updated = [
+      ...clientSlots.map((s) => (s.id === activeClientId ? { ...s, snapshots: outgoingSnap } : s)),
+      newSlot,
+    ];
+    SYNC_KEYS.forEach((k) => localStorage.removeItem(k));
+    setClientSlots(updated);
+    setActiveClientId(newId);
+    setSyncRefreshKey((k) => k + 1);
+    window.dispatchEvent(new Event('storage'));
+  };
+
   const openMapperForEngine = (eng?: TargetEngineType) => {
     if (eng) {
       setMapperDefaultEngine(eng);
@@ -116,6 +228,8 @@ export default function App() {
       setMapperDefaultEngine('p3');
     } else if (versionMode === 'standalone_p4') {
       setMapperDefaultEngine('p4');
+    } else if (versionMode === 'standalone_p5') {
+      setMapperDefaultEngine('p5');
     } else {
       setMapperDefaultEngine('p1');
     }
@@ -137,10 +251,10 @@ export default function App() {
                     ? 'bg-amber-500 text-slate-950 shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
-                title="Project 1: Dead Stock & Working Capital Cash-Release Engine"
+                title="Project 1: Cash Recovery Engine (Recovers Cash Locked in Dead Inventory Only)"
               >
                 <Package className="w-3.5 h-3.5" />
-                <span>{useCommercialNames ? 'Working Capital Audit' : 'P1 (Dead Stock)'}</span>
+                <span>{useCommercialNames ? 'Cash Recovery Engine' : 'P1 (Cash Recovery)'}</span>
               </button>
 
               <button
@@ -150,10 +264,10 @@ export default function App() {
                     ? 'bg-emerald-500 text-slate-950 shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
-                title="Project 2: Dispatch OTIF & Gate Clock Bottleneck Engine"
+                title="Project 2: Customer Promise Reliability Engine (Protects Customer Service & Revenue via Strict OTIF)"
               >
                 <Truck className="w-3.5 h-3.5" />
-                <span>{useCommercialNames ? 'Gate SLA & OTIF' : 'P2 (Dispatch OTIF)'}</span>
+                <span>{useCommercialNames ? 'Customer Promise Engine' : 'P2 (Promise OTIF)'}</span>
               </button>
 
               <button
@@ -163,10 +277,10 @@ export default function App() {
                     ? 'bg-cyan-500 text-slate-950 shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
-                title="Project 3: Freight Leak & Lorry Detention Audit"
+                title="Project 3: Profit Protection Engine (Protects Profit Margin from Freight Leaks)"
               >
                 <Scale className="w-3.5 h-3.5" />
-                <span>{useCommercialNames ? 'Freight Leak Audit' : 'P3 (Freight Leak)'}</span>
+                <span>{useCommercialNames ? 'Profit Protection Engine' : 'P3 (Profit Protection)'}</span>
               </button>
 
               <button
@@ -176,10 +290,10 @@ export default function App() {
                     ? 'bg-fuchsia-500 text-slate-950 shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
-                title="Project 4: BinAudit EV — Ghost Stock & Fast-Mover Cycle Count"
+                title="Project 4: Warehouse Reliability Engine (Protects Inventory Integrity & Bin Accuracy)"
               >
                 <ScanBarcode className="w-3.5 h-3.5" />
-                <span>{useCommercialNames ? 'Ghost-Stock Bin Audit' : 'P4 (Bin Audit)'}</span>
+                <span>{useCommercialNames ? 'Warehouse Reliability Engine' : 'P4 (Warehouse Trust)'}</span>
               </button>
 
               <button
@@ -192,7 +306,7 @@ export default function App() {
                 title="Project 5: Monday 9AM Control Tower & Overdue Debtors"
               >
                 <Radio className="w-3.5 h-3.5" />
-                <span>{useCommercialNames ? 'Monday 9AM Board' : 'P5 (Monday Tower)'}</span>
+                <span>{useCommercialNames ? 'Monday Control Tower' : 'P5 (Monday Tower)'}</span>
               </button>
 
               <button
@@ -205,7 +319,7 @@ export default function App() {
                 title="Explore Custom Order Combinations: P1+P4, P1+P3+P5, P2+P3, P2+P4, or build your own sequence"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{useCommercialNames ? 'Custom Bundles (P1+P4 / P1+P3+P5)' : 'Custom Combos (P1+P4, P1+P3+P5...)'}</span>
+                <span>{useCommercialNames ? 'Modular Control Bundles' : 'Custom Combos'}</span>
               </button>
 
               <button
@@ -215,19 +329,43 @@ export default function App() {
                     ? 'bg-indigo-600 text-white shadow-sm font-bold border border-indigo-400/40'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
-                title="Run Unified 5-Engine Enterprise Operating System (P1 + P2 + P3 + P4 + P5)"
+                title="Run Unified Manufacturing Intelligence Suite (P1 + P2 + P3 + P4 + P5)"
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>{useCommercialNames ? 'Full 5-Engine OS' : 'P1+P2+P3+P4+P5'}</span>
+                <span>{useCommercialNames ? 'Operations Control Tower' : 'P1+P2+P3+P4+P5'}</span>
               </button>
             </div>
 
-            {/* Right: Commercial Utilities (Smart Tally Importer, Device Sync, Brand Toggle, Client Lock) */}
+            {/* Right: Multi-Client Switcher & Commercial Utilities */}
             <div className="flex flex-wrap items-center gap-1.5">
+              {/* Multi-Client Workspace Switcher */}
+              <div className="flex items-center bg-slate-900 border border-slate-700 rounded-md px-2 py-0.5 gap-1">
+                <Building2 className="w-3 h-3 text-amber-400 shrink-0" />
+                <select
+                  value={activeClientId}
+                  onChange={(e) => handleSwitchClientSlot(e.target.value)}
+                  className="bg-transparent text-[11px] font-semibold text-slate-200 focus:outline-none max-w-[145px] cursor-pointer"
+                  title="Switch isolated Client Factory Workspace without overwriting other clients"
+                >
+                  {clientSlots.map((c) => (
+                    <option key={c.id} value={c.id} className="bg-slate-900 text-white">
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleAddNewClientSlot}
+                  className="p-0.5 rounded hover:bg-slate-800 text-amber-300 cursor-pointer"
+                  title="Create isolated workspace for a new factory client"
+                >
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+
               <button
                 onClick={() => openMapperForEngine()}
                 className="px-2.5 py-1 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 font-bold text-[11px] flex items-center gap-1 cursor-pointer transition"
-                title="Import messy Tally Prime / Excel files with automatic column mapping & Grand Total stripping"
+                title="Import messy Tally Prime / Excel CSV files with automatic column mapping & Grand Total stripping"
               >
                 <Wand2 className="w-3 h-3" />
                 <span>Smart Tally Import</span>
@@ -236,10 +374,10 @@ export default function App() {
               <button
                 onClick={() => setShowDeviceSync(true)}
                 className="px-2.5 py-1 rounded-md bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 font-bold text-[11px] flex items-center gap-1 cursor-pointer transition"
-                title="Sync Gate Guard Tablet (P2) & Storekeeper Phone (P4) with Owner Laptop"
+                title="Sync Gate Guard Tablet (P2), Storekeeper Phone (P4) & Share 1-Click Client Link"
               >
                 <RefreshCw className="w-3 h-3" />
-                <span>Device Sync</span>
+                <span>Device &amp; Client Sync</span>
               </button>
 
               <button
@@ -249,7 +387,7 @@ export default function App() {
                     ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
                     : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
                 }`}
-                title="Toggle between internal P1–P5 codes and client-facing Enterprise Module names"
+                title="Toggle between internal P1–P5 codes and Executive Control Tower Brand Names"
               >
                 <Briefcase className="w-3 h-3" />
                 <span>{useCommercialNames ? 'Brand Names: ON' : 'P1–P5 Codes'}</span>
@@ -279,7 +417,7 @@ export default function App() {
       )}
 
       {/* Render Selected Version */}
-      <div className="flex-1" key={syncRefreshKey}>
+      <div className="flex-1" key={`${activeClientId}-${syncRefreshKey}`}>
         {versionMode === 'standalone_p1' && <Project1App />}
         {versionMode === 'standalone_p2' && <Project2App />}
         {versionMode === 'standalone_p3' && <Project3App />}
