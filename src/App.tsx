@@ -186,7 +186,7 @@ export default function App() {
     SYNC_KEYS.forEach((k) => localStorage.removeItem(k));
     if (targetSlot && targetSlot.snapshots) {
       Object.entries(targetSlot.snapshots).forEach(([k, val]) => {
-        localStorage.setItem(k, val);
+        localStorage.setItem(k, String(val));
       });
     }
 
