@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Layers,
   Package,
@@ -186,25 +186,25 @@ export const STRATEGIC_BUNDLE_PRESETS: PresetBundle[] = [
   {
     id: 'p1_p2',
     codeLabel: 'P1 + P2',
-    commercialName: 'Purchase-to-Dispatch Working Capital & SLA Loop',
-    tagline: 'Proves how buying/producing unscheduled slow stock (P1) starves cash & machine hours needed for urgent POs (P2).',
+    commercialName: 'Cash Recovery + Customer Promise Alignment Bundle',
+    tagline: 'P1 unlocks dead cash trapped in >180d idle inventory while P2 tracks strict customer OTIF delivery promises.',
     sequence: ['p1', 'p2'],
-    targetBuyer: 'Custom Fabrication, Machining & Stamping Plants with High Overtime & Late POs',
+    targetBuyer: 'Custom Fabrication, Machining & Stamping Plants with Trapped Stock & Late POs',
     whyCrazyGood:
-      'Why is a factory simultaneously full of ₹10L+ in dead/slow inventory (P1) AND missing customer dispatch dates due to "Material Shortage / Machine Breakdown" (P2)? Because Production & Purchase are making unscheduled batch sizes that sit in P1 while starving the exact parts scheduled for today’s gate dispatch in P2!',
+      'Strictly separates concerns: P1 focuses ONLY on recovering cash locked in dead inventory (never touching production planning, purchase planning, dispatch tracking, or OTIF), while P2 serves as the dedicated Customer Promise Reliability Engine measuring On-Time In-Full delivery accuracy. Pairing them recovers balance-sheet cash via P1 while protecting customer revenue via P2!',
     uniqueProductIdea:
-      '"PO-Linked Purchase Freeze & Gate Slot Sync": Freeze all buying on non-PO slow movers (P1) and reallocate 100% of working capital to this week’s P2 dispatch schedule.',
+      '"Dual Cash & Customer Promise Diagnostic": Liquidate dead >180d inventory in P1 while eliminating customer late/short delivery penalties in P2.',
     dfyAgencyPitch: {
-      price: '₹40,000 30-Day Working Capital + Dispatch Alignment Audit',
-      deliverable: 'Purchase Freeze Ledger (P1) cross-linked to 30-Day Late PO Root-Cause Pareto (P2).',
+      price: '₹40,000 30-Day Cash Recovery + Customer Promise Audit',
+      deliverable: 'Dead Inventory Liquidation Ledger (P1) + Customer OTIF Root-Cause & Penalty Shield (P2).',
       script:
-        '"You have ₹9.5 Lakhs tied up in slow/dead stock while your dispatch team missed 9 customer POs due to material and packing holds. We align your P1 purchase freeze list directly with your P2 gate schedule."',
+        '"P1 shows you exact rupees locked in dead stock (>180 days idle), while P2 shows why customer orders fail On-Time In-Full promises. Together they recover trapped cash and protect customer revenue."',
     },
     directSaasPitch: {
-      price: '₹13,500 / month Plant Planning Suite',
-      users: 'Purchase Manager (P1) + PPC / Dispatch Head (P2)',
+      price: '₹13,500 / month Cash + OTIF Suite',
+      users: 'Finance / Inventory Controller (P1) + Dispatch & Customer Service Head (P2)',
       script:
-        '"Links your Tally Stock Aging directly to your Gate Dispatch Board so Purchase only buys what is scheduled to leave the gate."',
+        '"Keep P1 focused strictly on dead-inventory cash recovery while P2 tracks every customer PO commitment at the factory gate."',
     },
   },
   {
@@ -263,32 +263,32 @@ const ENGINE_META: Record<
 > = {
   p1: {
     code: 'P1',
-    shortName: 'Dead Stock',
-    commercialTitle: 'Working Capital & Dead Stock Engine',
+    shortName: 'Cash Recovery',
+    commercialTitle: 'Cash Recovery Engine (Dead Inventory)',
     color: 'text-amber-400',
     badgeBg: 'bg-amber-500/20 border-amber-500/40 text-amber-300',
     icon: Package,
   },
   p2: {
     code: 'P2',
-    shortName: 'Dispatch OTIF',
-    commercialTitle: 'Gate Clock & Strict OTIF SLA Engine',
+    shortName: 'Promise OTIF',
+    commercialTitle: 'Customer Promise Reliability Engine (OTIF)',
     color: 'text-emerald-400',
     badgeBg: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300',
     icon: Truck,
   },
   p3: {
     code: 'P3',
-    shortName: 'Freight Leak',
-    commercialTitle: 'Corridor Rate & Lorry Detention Audit',
+    shortName: 'Profit Protection',
+    commercialTitle: 'Profit Protection Engine (Freight)',
     color: 'text-cyan-400',
     badgeBg: 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300',
     icon: Scale,
   },
   p4: {
     code: 'P4',
-    shortName: 'BinAudit EV',
-    commercialTitle: 'Ghost-Stock & Fast-Mover Bin Audit',
+    shortName: 'Warehouse Trust',
+    commercialTitle: 'Warehouse Reliability Engine (Bin Accuracy)',
     color: 'text-fuchsia-400',
     badgeBg: 'bg-fuchsia-500/20 border-fuchsia-500/40 text-fuchsia-300',
     icon: ScanBarcode,
@@ -296,7 +296,7 @@ const ENGINE_META: Record<
   p5: {
     code: 'P5',
     shortName: 'Monday Tower',
-    commercialTitle: 'Monday 9AM Control Tower & Debtors',
+    commercialTitle: 'Monday Control Tower & Debtors',
     color: 'text-rose-400',
     badgeBg: 'bg-rose-500/20 border-rose-500/40 text-rose-300',
     icon: Radio,
@@ -305,7 +305,7 @@ const ENGINE_META: Record<
 
 interface CustomBundleCombinatorProps {
   useCommercialNames: boolean;
-  onOpenSmartMapper: (engine?: 'p1' | 'p2' | 'p3' | 'p4') => void;
+  onOpenSmartMapper: (engine?: 'p1' | 'p2' | 'p3' | 'p4' | 'p5') => void;
 }
 
 export const CustomBundleCombinator: React.FC<CustomBundleCombinatorProps> = ({
@@ -316,6 +316,21 @@ export const CustomBundleCombinator: React.FC<CustomBundleCombinatorProps> = ({
   const [activePresetId, setActivePresetId] = useState<string>('p1_p4');
   const [salesModelTab, setSalesModelTab] = useState<'dfy' | 'saas'>('dfy');
   const [activeWorkspaceEngine, setActiveWorkspaceEngine] = useState<EngineKey | 'synergy_lab'>('synergy_lab');
+  const [refreshTick, setRefreshTick] = useState<number>(0);
+
+  useEffect(() => {
+    const bump = () => setRefreshTick((t) => t + 1);
+    window.addEventListener('storage', bump);
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('factory_suite_live_sync');
+      bc.onmessage = bump;
+    } catch {}
+    return () => {
+      window.removeEventListener('storage', bump);
+      if (bc) bc.close();
+    };
+  }, []);
 
   // Pull live metrics from localStorage across all 5 engines
   const liveMetrics = useMemo(() => {
@@ -355,20 +370,24 @@ export const CustomBundleCombinator: React.FC<CustomBundleCombinatorProps> = ({
     const p4AnnualGhostAndSpotBleed = p4Summary.shelfShortRupees * 4 + p4Shortages.filter((s) => s.severity === 'critical').length * 48000;
 
     // P5
-    const p5Tower = JSON.parse(localStorage.getItem('monday_control_tower_v1') || 'null') || INITIAL_TOWER_DATA;
+    const p5Tower =
+      JSON.parse(localStorage.getItem('monday_tower_data_v1') || localStorage.getItem('monday_control_tower_v1') || 'null') ||
+      INITIAL_TOWER_DATA;
 
     return {
+      p1Items,
       p1Summary,
       p2Summary,
       p2AnnualPenalty,
       p3Summary,
       p3AnnualLeak,
+      p4Items,
       p4Summary,
       p4Shortages,
       p4AnnualGhostAndSpotBleed,
       p5Tower,
     };
-  }, [selectedSequence, activeWorkspaceEngine]);
+  }, [selectedSequence, activeWorkspaceEngine, refreshTick]);
 
   const handleSelectPreset = (preset: PresetBundle) => {
     setActivePresetId(preset.id);
@@ -483,7 +502,7 @@ export const CustomBundleCombinator: React.FC<CustomBundleCombinatorProps> = ({
       insights.push({
         title: 'P2 × P3 Forensic Cross-Check: Internal QC/Packing Holds Driving External Lorry Detention Bills',
         badge: 'P2 + P3 Synergy',
-        detail: `In P3, you paid ${formatCurrency(liveMetrics.p3Summary.totals.detentionLeak, 'INR')} in lorry gate-waiting detention charges. Cross-checking P2 reveals ${qcAndPackingFails} dispatches were held at the gate due to internal QC Hold & Packing Delays—proving internal shop-floor holds are directly causing transporter halting bills!`,
+        detail: `In P3, you paid ${formatCurrency(liveMetrics.p3Summary.totals.detention, 'INR')} in lorry gate-waiting detention charges. Cross-checking P2 reveals ${qcAndPackingFails} dispatches were held at the gate due to internal QC Hold & Packing Delays—proving internal shop-floor holds are directly causing transporter halting bills!`,
         impact: `Eliminates ${formatCurrency(liveMetrics.p3AnnualLeak, 'INR')}/yr in freight & detention bleed`,
       });
     }
