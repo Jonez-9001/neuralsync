@@ -17,7 +17,7 @@ import { Trip } from '../project3/types/freight';
 import { AuditItem } from '../project4/types/audit';
 import { INITIAL_WORKSPACES } from '../project2/data/factoryWorkspaces';
 
-export type TargetEngineType = 'p1' | 'p2' | 'p3' | 'p4';
+export type TargetEngineType = 'p1' | 'p2' | 'p3' | 'p4' | 'p5';
 
 interface SmartTallyMapperModalProps {
   isOpen: boolean;
@@ -101,17 +101,33 @@ Sub Total\t\t\t\t\t43.5 MT\t₹ 1,29,400.00\t`,
       { key: 'code', label: 'SKU / Part Code', required: true, synonyms: ['code', 'sku', 'part no', 'item code'] },
       { key: 'part', label: 'Spare Part Name', required: true, synonyms: ['part', 'name', 'particulars', 'description'] },
       { key: 'spot', label: 'Bin / Rack Location', required: true, synonyms: ['spot', 'bin', 'rack', 'location', 'zone'] },
-      { key: 'bookQty', label: 'Tally System Qty (Book)', required: true, synonyms: ['book', 'system qty', 'tally qty', 'computer qty'] },
+      { key: 'systemQty', label: 'Tally System Qty (Book)', required: true, synonyms: ['book', 'system qty', 'tally qty', 'computer qty'] },
       { key: 'physicalQty', label: 'Physical Hand Count', required: true, synonyms: ['physical', 'hand count', 'actual', 'counted'] },
-      { key: 'unitCost', label: 'Store Cost Rate (₹)', required: true, synonyms: ['cost', 'rate', 'unit cost', 'purchase rate'] },
+      { key: 'cost', label: 'Store Cost Rate (₹)', required: true, synonyms: ['cost', 'rate', 'unit cost', 'purchase rate'] },
       { key: 'issuesPerMonth', label: '30-Day Counter Issues (Velocity)', required: true, synonyms: ['issues', 'velocity', 'monthly', 'sales', 'outward'] },
     ],
     messySample: `SKU Code\tParticulars\tRack Location\tTally Book Qty\tHand Counted\tPurchase Cost\t30-Day Issues
-EV-CHG-48V\t48V 15A Lithium Fast Charger\tBack rack\t18 Nos\t13 Nos\t₹ 3,450\t28
-EV-BRK-PAD\tFront Disc Ceramic Brake Pad Set\tBack rack\t42 Sets\t31 Sets\t₹ 380\t64
-EV-THROT-01\tHall Sensor Twist Throttle Grip\tCounter\t25 Pcs\t25 Pcs\t₹ 520\t35
-EV-CTRL-72V\t72V Sinewave BLDC Controller\tMezzanine\t9 Nos\t7 Nos\t₹ 6,200\t14
-Grand Total\t\t\t94\t76\t\t141`,
+EV-CHG-01\tPortable charger 3.3 kW\tBack rack\t18 Nos\t13 Nos\t₹ 8,200\t28
+EV-BRK-04\tBrake-pad set\tMezzanine\t42 Sets\t31 Sets\t₹ 1,800\t64
+EV-LCK-09\tHandle lock\tCounter\t25 Pcs\t25 Pcs\t₹ 220\t35
+FG-FLG-150\tSS flange 150NB\tBack rack\t25 Nos\t19 Nos\t₹ 1,850\t14
+Grand Total\t\t\t110\t88\t\t141`,
+  },
+  p5: {
+    name: 'P5: Tally Bill-Wise Sundry Debtors (Overdue Bills >30d/45d)',
+    badge: 'Tally Outstandings Export',
+    fields: [
+      { key: 'invoiceNo', label: 'Invoice / Ref No', required: true, synonyms: ['invoice', 'ref', 'bill no', 'vch no'] },
+      { key: 'customerName', label: 'Party / Customer Name', required: true, synonyms: ['party', 'customer', 'ledger', 'account'] },
+      { key: 'invoiceDate', label: 'Bill Date', required: true, synonyms: ['bill date', 'invoice date', 'date'] },
+      { key: 'daysOverdue', label: 'Overdue Days', required: true, synonyms: ['overdue', 'days', 'age', 'pending days'] },
+      { key: 'amountRupees', label: 'Pending Balance (₹)', required: true, synonyms: ['pending', 'balance', 'amount', 'due amt'] },
+    ],
+    messySample: `Bill Ref No\tParty Ledger Name\tBill Date\tOverdue Days\tPending Amount (INR)
+INV-2026-441\tApex Motors Hosur\t12-Jul-2026\t38 Days\t₹ 4,85,000.00 Dr
+INV-2026-489\tBharath Heavy Fabrication\t24-Jul-2026\t26 Days\t₹ 3,40,000.00 Dr
+INV-2026-512\tSouthern Industrial Valves\t02-Aug-2026\t17 Days\t₹ 2,90,000.00 Dr
+Grand Total\t\t\t\t₹ 11,15,000.00 Dr`,
   },
 };
 
@@ -238,10 +254,20 @@ export const SmartTallyMapperModal: React.FC<SmartTallyMapperModalProps> = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      setStatusMsg(
+        'Note: For binary .XLSX/.XLS workbooks, either press Ctrl+A / Ctrl+C inside Excel and paste directly into the box below (Tab-separated columns are auto-detected!), or Save As .CSV.'
+      );
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       const content = ev.target?.result;
       if (typeof content === 'string') {
+        if (content.startsWith('PK\x03\x04')) {
+          setStatusMsg('Detected binary Excel .xlsx zip header. Open the sheet in Excel, select the table (Ctrl+C), and paste directly into the box below!');
+          return;
+        }
         setRawText(content);
       }
     };
@@ -342,12 +368,34 @@ export const SmartTallyMapperModal: React.FC<SmartTallyMapperModalProps> = ({
           code: getCell(row, 'code') || `EV-SKU-${idx + 50}`,
           part: getCell(row, 'part') || 'EV Spare Component',
           spot: getCell(row, 'spot') || 'Back rack',
-          bookQty: cleanNumber(getCell(row, 'bookQty')),
+          systemQty: cleanNumber(getCell(row, 'systemQty')),
           physicalQty: cleanNumber(getCell(row, 'physicalQty')),
-          unitCost: cleanNumber(getCell(row, 'unitCost')) || 450,
+          cost: cleanNumber(getCell(row, 'cost')) || 450,
           issuesPerMonth: cleanNumber(getCell(row, 'issuesPerMonth')) || 12,
         }));
         localStorage.setItem('binaudit_skus_v1', JSON.stringify([...newBins, ...existing]));
+      } else if (targetEngine === 'p5') {
+        const existingBills = importMode === 'append'
+          ? JSON.parse(localStorage.getItem('p5_unpaid_bills_v1') || '[]')
+          : [];
+        const newBills = parsedTable.rows.map((row, idx) => ({
+          id: `tally-p5-${Date.now()}-${idx}`,
+          invoiceNo: getCell(row, 'invoiceNo') || `INV-${idx + 400}`,
+          customerName: getCell(row, 'customerName') || 'Industrial Customer',
+          invoiceDate: normalizeMessyDate(getCell(row, 'invoiceDate')),
+          dueDate: '2026-09-01',
+          daysOverdue: cleanNumber(getCell(row, 'daysOverdue')) || 35,
+          amountRupees: cleanNumber(getCell(row, 'amountRupees')) || 100000,
+          tallyLedger: 'Sundry Debtors - Tally Import',
+        }));
+        const mergedBills = [...newBills, ...existingBills];
+        localStorage.setItem('p5_unpaid_bills_v1', JSON.stringify(mergedBills));
+        const totalOverdue = mergedBills.reduce((s: number, b: any) => s + (b.amountRupees || 0), 0);
+        const savedTower = JSON.parse(localStorage.getItem('monday_control_tower_v1') || 'null');
+        if (savedTower) {
+          savedTower.unpaidBillsRupees = totalOverdue;
+          localStorage.setItem('monday_control_tower_v1', JSON.stringify(savedTower));
+        }
       }
 
       // Trigger storage event for live cross-component refresh
@@ -401,7 +449,7 @@ export const SmartTallyMapperModal: React.FC<SmartTallyMapperModalProps> = ({
               <span>1. Select Target Engine to Feed:</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {(['p1', 'p2', 'p3', 'p4'] as TargetEngineType[]).map((eng) => (
+              {(['p1', 'p2', 'p3', 'p4', 'p5'] as TargetEngineType[]).map((eng) => (
                 <button
                   key={eng}
                   onClick={() => handleEngineSwitch(eng)}
@@ -529,8 +577,8 @@ export const SmartTallyMapperModal: React.FC<SmartTallyMapperModalProps> = ({
                     <tr key={rIdx} className="hover:bg-slate-900/40">
                       {schema.fields.map((f) => {
                         const rawVal = row[columnMap[f.key] ?? 0] || '';
-                        const isNumeric = ['qtyOnHand', 'costRate', 'orderedQty', 'shippedQty', 'tonnes', 'bill', 'waitHours', 'bookQty', 'physicalQty', 'unitCost', 'issuesPerMonth'].includes(f.key);
-                        const isDate = ['lastMovement', 'date'].includes(f.key);
+                        const isNumeric = ['qtyOnHand', 'costRate', 'orderedQty', 'shippedQty', 'tonnes', 'bill', 'waitHours', 'systemQty', 'physicalQty', 'cost', 'issuesPerMonth', 'daysOverdue', 'amountRupees'].includes(f.key);
+                        const isDate = ['lastMovement', 'date', 'invoiceDate'].includes(f.key);
                         const displayVal = isNumeric
                           ? cleanNumber(rawVal).toLocaleString('en-IN')
                           : isDate

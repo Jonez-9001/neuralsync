@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   FileText,
   Copy,
@@ -33,6 +33,21 @@ type DocCategory = 'p3_debit_note' | 'p1_liquidation_rfq' | 'p4_reorder_memo' | 
 export const RecoveryActionDocsGenerator: React.FC = () => {
   const [activeDoc, setActiveDoc] = useState<DocCategory>('p3_debit_note');
   const [copiedDoc, setCopiedDoc] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  useEffect(() => {
+    const onRefresh = () => setRefreshTick((t) => t + 1);
+    window.addEventListener('storage', onRefresh);
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel('factory_suite_live_sync');
+      bc.onmessage = onRefresh;
+    } catch {}
+    return () => {
+      window.removeEventListener('storage', onRefresh);
+      if (bc) bc.close();
+    };
+  }, []);
 
   // Pull live data across P1–P5
   const liveData = useMemo(() => {
@@ -80,6 +95,7 @@ export const RecoveryActionDocsGenerator: React.FC = () => {
 
     // P5
     const p5Tower = JSON.parse(localStorage.getItem('monday_control_tower_v1') || 'null') || INITIAL_TOWER_DATA;
+    const p5Bills = JSON.parse(localStorage.getItem('p5_unpaid_bills_v1') || 'null') || SAMPLE_UNPAID_BILLS;
 
     return {
       p1Rules,
@@ -94,8 +110,9 @@ export const RecoveryActionDocsGenerator: React.FC = () => {
       p4Shortages,
       p4MissingBins,
       p5Tower,
+      p5Bills,
     };
-  }, []);
+  }, [refreshTick]);
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -154,19 +171,20 @@ Managing Director — ${clientName}`,
         .join('\n');
 
       return {
-        title: 'Purchase Freeze Order & Secondary Trader Liquidation RFQ Bid Sheet (P1)',
-        recipient: 'To: Purchase Head, Stores In-Charge & Approved Secondary Metal/Spares Buyers',
+        title: 'Dead Cash Inventory Liquidation & Supplier Credit-Swap RFQ (P1 — Cash Recovery Engine)',
+        recipient: 'To: Stores In-Charge, Finance Head & Approved Secondary Metal/Spares Buyers',
         recoveryAmount: `${formatCurrency(targetRecovery50, 'INR')} – ${formatCurrency(targetRecovery70, 'INR')} Cash Release`,
-        body: `WORKING CAPITAL RELEASE: IMMEDIATE PURCHASE FREEZE & LOT LIQUIDATION RFQ
+        body: `PROJECT 1 CASH RECOVERY ENGINE: DEAD INVENTORY LIQUIDATION & SUPPLIER RETURN RFQ
 Company: ${clientName}
 Date: ${todayStr}
-Total Dead Stock Identified (>180 Days Idle): ${formatCurrency(deadTotal, 'INR')} (${liveData.p1DeadItems.length} SKUs)
+Total Dead Cash Locked in Inventory (>180 Days Idle): ${formatCurrency(deadTotal, 'INR')} (${liveData.p1DeadItems.length} SKUs)
+Slow-Moving Cash Tied Up (90–179 Days Idle): ${formatCurrency(liveData.p1Summary.slowCash, 'INR')} (${liveData.p1SlowItems.length} SKUs)
 Annual Carrying Burn Being Stopped: ${formatCurrency(liveData.p1Summary.annualHoldingBurn, 'INR')}/yr
 
-PART A — IMMEDIATE PURCHASE FREEZE DIRECTIVE (FOR PURCHASE & STORES):
-Effective today, Purchase is strictly prohibited from raising fresh POs for ${liveData.p1DeadItems.length} Dead SKUs and ${liveData.p1SlowItems.length} Slow-Moving SKUs (${formatCurrency(liveData.p1Summary.slowCash, 'INR')}). Engineering must check this list for alternate part substitution before approving any new material indent.
+STRICT P1 SCOPE MANDATE:
+P1 focuses strictly on unlocking Dead Cash trapped in idle inventory (it does NOT perform production planning, purchase planning, dispatch tracking, or OTIF analysis).
 
-PART B — LOT LIQUIDATION / SUPPLIER CREDIT-SWAP SCHEDULE:
+LOT LIQUIDATION / SUPPLIER CREDIT-SWAP SCHEDULE:
 We invite sealed lot-clearance quotes / supplier return credit notes by Friday 5:00 PM for the following idle inventory lots:
 ${itemLines || 'No Dead Stock items currently in ledger.'}
 
@@ -185,7 +203,7 @@ Managing Director — ${clientName}`,
         .slice(0, 6)
         .map(
           (it: any, idx: number) =>
-            `${idx + 1}. [${it.code}] ${it.part} | Location: ${it.spot} | Tally Book Qty: ${it.bookQty} | Physical Hand Count: ${it.physicalQty} | Missing Variance: ${it.gapQty} units (${formatCurrency(Math.abs(it.gapRupees || 0), 'INR')})`
+            `${idx + 1}. [${it.code}] ${it.part} | Location: ${it.spot} | Tally Book Qty: ${it.systemQty} | Physical Hand Count: ${it.physicalQty} | Missing Variance: ${it.gapQty} units (${formatCurrency(Math.abs(it.gapRupees || 0), 'INR')})`
         )
         .join('\n');
 
@@ -204,7 +222,7 @@ Managing Director — ${clientName}`,
         body: `PRE-SHUTTER PHYSICAL BIN AUDIT: VARIANCE MEMO & EMERGENCY REORDER INDENT
 Company: ${clientName}
 Audit Date: ${todayStr}
-Bins Audited: ${liveData.p4Summary.totalSkus} SKUs | Mismatched Lines: ${liveData.p4Summary.linesMismatch} | Net Shelf Shortage: ${formatCurrency(shortRupees, 'INR')}
+Bins Audited: ${liveData.p4Summary.skusCounted} SKUs | Mismatched Lines: ${liveData.p4Summary.linesMismatch} | Net Shelf Shortage: ${formatCurrency(shortRupees, 'INR')}
 
 1. GHOST STOCK & PHYSICAL SHRINKAGE EXPLANATION REQUIRED WITHIN 24 HRS:
 The following bins have fewer physical units on the shelf than recorded in Tally ERP. Storekeeper & Accounts must reconcile whether these were unbilled counter issues, warranty swaps, or pilferage:
@@ -215,7 +233,7 @@ Based on verified physical hand counts (NOT Tally book quantities), the followin
 ${reorderLines || 'All fast-moving bins have >30 days cover.'}
 
 3. GOLDEN-ZONE RE-SLOTTING MANDATE:
-Move the ${liveData.p4Summary.hiddenFastMoversCount} high-velocity SKUs currently stored in Back Rack / Mezzanine directly to the front Counter selling face before tomorrow 8:30 AM.
+Move the ${liveData.p4Summary.fastMoversHidden} high-velocity SKUs currently stored in Back Rack / Mezzanine directly to the front Counter selling face before tomorrow 8:30 AM.
 
 Authorized Signatory,
 Operations & Stores Audit — ${clientName}`,
@@ -257,8 +275,8 @@ Managing Director — ${clientName}`,
 
     // p5_debtor_notice
     const overdueTotal = liveData.p5Tower.unpaidBillsRupees;
-    const billLines = SAMPLE_UNPAID_BILLS.map(
-      (b, idx) =>
+    const billLines = liveData.p5Bills.map(
+      (b: any, idx: number) =>
         `${idx + 1}. Invoice ${b.invoiceNo} | Customer: ${b.customerName} | Inv Date: ${b.invoiceDate} | Overdue: +${b.daysOverdue} days past ${liveData.p5Tower.normalCreditDays}d credit | Amount Due: ${formatCurrency(b.amountRupees, 'INR')}`
     ).join('\n');
 
