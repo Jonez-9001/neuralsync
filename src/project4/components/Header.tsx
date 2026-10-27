@@ -61,16 +61,16 @@ export const Header: React.FC<HeaderProps> = ({
               ⚡
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                  <span>BinAudit EV</span>
-                  <span className="text-xs px-2 py-0.5 rounded font-mono font-medium bg-emerald-950 text-emerald-300 border border-emerald-700/50">
-                    Project 4
+                  <span>Warehouse Reliability Engine</span>
+                  <span className="text-xs px-2 py-0.5 rounded font-mono font-medium bg-fuchsia-950 text-fuchsia-300 border border-fuchsia-700/50">
+                    P4 • Inventory Accuracy Intelligence
                   </span>
                 </h1>
                 <span className="text-xs text-slate-400 hidden sm:inline">•</span>
                 <span className="text-xs text-slate-300 hidden sm:inline font-medium">
-                  {rules.storeName}
+                  {rules.storeName} (BinAudit EV)
                 </span>
               </div>
               <div className="flex items-center gap-3 text-xs text-slate-400">

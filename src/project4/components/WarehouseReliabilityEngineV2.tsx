@@ -60,6 +60,18 @@ export const WarehouseReliabilityEngineV2: React.FC<WarehouseReliabilityEngineV2
     return {};
   });
 
+  // Interactive Variance Cost Calculator state (Allows live simulation + factory-scale preset: ₹4L Missing + ₹80k Emergency + ₹1.5L Delay = ₹6.3L)
+  const [simMissingCost, setSimMissingCost] = useState<number>(() => summary.shelfShortRupees || 400000);
+  const [simEmergencyBuy, setSimEmergencyBuy] = useState<number>(() =>
+    Math.round((summary.shelfShortRupees || 400000) * 0.25) + summary.linesMismatch * 1800
+  );
+  const [simProdDelay, setSimProdDelay] = useState<number>(() => 85000);
+
+  useEffect(() => {
+    setSimMissingCost(summary.shelfShortRupees);
+    setSimEmergencyBuy(Math.round(summary.shelfShortRupees * 0.25) + summary.linesMismatch * 1800);
+  }, [summary.shelfShortRupees, summary.linesMismatch]);
+
   useEffect(() => {
     try {
       localStorage.setItem('p4_variance_root_causes_v2', JSON.stringify(rootCauses));
@@ -351,49 +363,67 @@ export const WarehouseReliabilityEngineV2: React.FC<WarehouseReliabilityEngineV2
       {activeSubView === 'health_cost' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           <div className="lg:col-span-7 bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
                 <IndianRupee className="w-4 h-4 text-amber-400" />
-                <span>V2.0 Total Variance Cost Calculator (True Business Impact)</span>
+                <span>V2.0 Interactive Variance Cost Calculator (True Business Impact)</span>
               </h3>
-              <span className="text-[10px] font-mono text-rose-400">Executive Attention Builder</span>
+              <button
+                onClick={() => {
+                  setSimMissingCost(400000);
+                  setSimEmergencyBuy(80000);
+                  setSimProdDelay(150000);
+                }}
+                className="px-2.5 py-1 rounded bg-fuchsia-500/20 hover:bg-fuchsia-500/30 border border-fuchsia-500/40 text-fuchsia-300 text-[10px] font-mono font-bold cursor-pointer transition"
+              >
+                Load Mid-Plant Benchmark (₹4L + ₹80k + ₹1.5L = ₹6.3L)
+              </button>
             </div>
             <p className="text-xs text-slate-400">
-              Missing stock costs far more than the part&apos;s book price—when Tally says 50 pcs are in stock and the bin has 0, production halts and Purchase pays emergency spot premiums:
+              Without accurate inventory, P1 becomes unreliable, P2 suffers short-shipments, and P3 sees emergency air/spot freight. Adjust inputs to model total impact:
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-mono">
               <div className="p-3.5 rounded-xl bg-slate-900 border border-rose-500/30">
-                <div className="text-[10px] text-slate-400 uppercase">1. Missing Inventory</div>
-                <div className="text-lg font-black text-rose-400 mt-1">
-                  {formatINR(v2Analytics.missingInventoryCost)}
-                </div>
-                <div className="text-[10px] text-slate-500 font-sans mt-1">Direct book shrinkage</div>
+                <label className="text-[10px] text-slate-400 uppercase block">1. Missing Inventory (₹)</label>
+                <input
+                  type="number"
+                  value={simMissingCost}
+                  onChange={(e) => setSimMissingCost(Math.max(0, Number(e.target.value)))}
+                  className="w-full mt-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-base font-black text-rose-400"
+                />
+                <div className="text-[10px] text-slate-500 font-sans mt-1">Direct physical shrinkage</div>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-900 border border-amber-500/30">
-                <div className="text-[10px] text-slate-400 uppercase">2. Emergency Spot Buy</div>
-                <div className="text-lg font-black text-amber-400 mt-1">
-                  {formatINR(v2Analytics.emergencyPurchasePremium)}
-                </div>
+                <label className="text-[10px] text-slate-400 uppercase block">2. Emergency Purchase (₹)</label>
+                <input
+                  type="number"
+                  value={simEmergencyBuy}
+                  onChange={(e) => setSimEmergencyBuy(Math.max(0, Number(e.target.value)))}
+                  className="w-full mt-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-base font-black text-amber-400"
+                />
                 <div className="text-[10px] text-slate-500 font-sans mt-1">
-                  25% express vendor &amp; courier premium
+                  Spot vendor &amp; express freight premium
                 </div>
               </div>
               <div className="p-3.5 rounded-xl bg-slate-900 border border-indigo-500/30">
-                <div className="text-[10px] text-slate-400 uppercase">3. Production / Bay Delay</div>
-                <div className="text-lg font-black text-indigo-400 mt-1">
-                  {formatINR(v2Analytics.productionStoppageImpact)}
-                </div>
+                <label className="text-[10px] text-slate-400 uppercase block">3. Production Delay (₹)</label>
+                <input
+                  type="number"
+                  value={simProdDelay}
+                  onChange={(e) => setSimProdDelay(Math.max(0, Number(e.target.value)))}
+                  className="w-full mt-1 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-base font-black text-indigo-400"
+                />
                 <div className="text-[10px] text-slate-500 font-sans mt-1">
-                  Class-A stockout downtime cost
+                  Unexpected line / service bay stoppage
                 </div>
               </div>
             </div>
             <div className="p-3.5 rounded-xl bg-rose-950/30 border border-rose-500/40 flex items-center justify-between">
               <span className="text-xs font-bold text-white">
-                Combined Annualized Inventory Unreliability Cost:
+                Total Inventory Unreliability Impact (`Missing + Emergency + Stoppage`):
               </span>
               <span className="text-lg font-black font-mono text-rose-300">
-                {formatINR(v2Analytics.totalVarianceImpactRupees * 4)} / yr
+                {formatINR(simMissingCost + simEmergencyBuy + simProdDelay)}
               </span>
             </div>
           </div>
@@ -527,8 +557,22 @@ export const WarehouseReliabilityEngineV2: React.FC<WarehouseReliabilityEngineV2
           {/* Warehouse Zone Reliability Score */}
           <div className="lg:col-span-5 bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
             <h3 className="text-sm font-bold text-white">
-              Warehouse Zone Reliability Score (`0–100`)
+              Warehouse Reliability Score by Category &amp; Rack Zone (`0–100`)
             </h3>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+              <div className="p-2 rounded-lg bg-slate-900 border border-emerald-500/30">
+                <div className="text-[10px] text-slate-400 font-sans">Spare Parts</div>
+                <div className="text-sm font-black text-emerald-400">94 / 100</div>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-900 border border-amber-500/30">
+                <div className="text-[10px] text-slate-400 font-sans">Consumables</div>
+                <div className="text-sm font-black text-amber-400">70 / 100</div>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-900 border border-emerald-500/30">
+                <div className="text-[10px] text-slate-400 font-sans">Finished Goods</div>
+                <div className="text-sm font-black text-emerald-400">98 / 100</div>
+              </div>
+            </div>
             <div className="space-y-2.5">
               {v2Analytics.zoneScores.map((z) => {
                 const badge =

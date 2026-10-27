@@ -303,19 +303,19 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500/20 via-emerald-500/20 to-amber-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
               <Layers className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white tracking-tight">
-                  Industrial Operations Command Suite (P1 + P2 + P3 + P4 + P5)
-                </span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                  5-Engine Live Sync
-                </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white tracking-tight">
+                    Manufacturing Intelligence Suite &amp; Operations Control Tower
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    CFO + Supply Chain + Logistics + Warehouse
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  P1 Cash Recovery (Cash) • P2 Customer Promise (Revenue) • P3 Profit Protection (Margin) • P4 Warehouse Reliability (Integrity) • P5 Monday Tower
+                </p>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Dead Stock (P1) • Gate OTIF (P2) • Freight Audit (P3) • Bin &amp; Slotting (P4) • Monday Control Tower (P5)
-              </p>
-            </div>
           </div>
 
           {/* Sub-Module Switcher inside Merged Version */}
@@ -430,6 +430,56 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
 
       {activeModule === 'synthesis' && (
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          {/* 4-Executive Manufacturing Intelligence Suite Architecture Banner */}
+          <div className="bg-slate-900/95 border border-indigo-500/40 rounded-2xl p-4 sm:p-5 space-y-3 shadow-xl no-print">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-[10px] font-mono font-bold uppercase">
+                  Manufacturing Intelligence Suite
+                </span>
+                <span className="text-xs font-bold text-white">
+                  Gives the Factory Owner a CFO, Supply Chain Manager, Logistics Manager &amp; Warehouse Manager on One Dashboard
+                </span>
+              </div>
+              <span className="text-[11px] font-mono text-fuchsia-300">
+                P4 Foundation: Without Inventory Trust, P1 Is Unreliable, P2 Suffers Shortages &amp; P3 Pays Emergency Freight
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <button
+                onClick={() => setActiveModule('p1_engine')}
+                className="p-3 rounded-xl bg-slate-950 border border-amber-500/30 hover:border-amber-400 text-left transition cursor-pointer"
+              >
+                <div className="text-[10px] font-mono uppercase text-amber-400 font-bold">P1 • Virtual CFO (Protects Cash)</div>
+                <div className="font-black text-white mt-0.5">Cash Recovery Engine</div>
+                <div className="text-[11px] text-slate-400 mt-1">Strictly dead cash locked in &gt;180d inventory ({formatCurrency(p1Summary.deadCash, 'INR')})</div>
+              </button>
+              <button
+                onClick={() => setActiveModule('p2_engine')}
+                className="p-3 rounded-xl bg-slate-950 border border-emerald-500/30 hover:border-emerald-400 text-left transition cursor-pointer"
+              >
+                <div className="text-[10px] font-mono uppercase text-emerald-400 font-bold">P2 • Supply Chain Mgr (Protects Revenue)</div>
+                <div className="font-black text-white mt-0.5">Customer Promise Engine</div>
+                <div className="text-[11px] text-slate-400 mt-1">Strict On-Time In-Full delivery accuracy ({p2Metrics.otifPercent}% OTIF)</div>
+              </button>
+              <button
+                onClick={() => setActiveModule('p3_engine')}
+                className="p-3 rounded-xl bg-slate-950 border border-cyan-500/30 hover:border-cyan-400 text-left transition cursor-pointer"
+              >
+                <div className="text-[10px] font-mono uppercase text-cyan-400 font-bold">P3 • Logistics Mgr (Protects Profit)</div>
+                <div className="font-black text-white mt-0.5">Profit Protection Engine</div>
+                <div className="text-[11px] text-slate-400 mt-1">Stops freight overbilling, duplicates &amp; margin bleed ({formatCurrency(p3Audit.totals.totalLeak, 'INR')})</div>
+              </button>
+              <button
+                onClick={() => setActiveModule('p4_engine')}
+                className="p-3 rounded-xl bg-slate-950 border border-fuchsia-500/30 hover:border-fuchsia-400 text-left transition cursor-pointer"
+              >
+                <div className="text-[10px] font-mono uppercase text-fuchsia-400 font-bold">P4 • Warehouse Mgr (Protects Integrity)</div>
+                <div className="font-black text-white mt-0.5">Warehouse Reliability Engine</div>
+                <div className="text-[11px] text-slate-400 mt-1">Validates physical bins vs ERP stock ({p4Summary.linesMismatch} mismatches flagged)</div>
+              </button>
+            </div>
+          </div>
           {syncSuccessToast && (
             <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold flex items-center justify-between">
               <div className="flex items-center gap-2">
