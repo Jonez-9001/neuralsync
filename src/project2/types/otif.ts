@@ -65,6 +65,7 @@ export interface DispatchRow {
   inFull?: boolean;
   otif?: boolean;
   failType?: FailType;
+  lateHours?: number;
   notes?: string;
   isWhatsAppOrder?: boolean;
 }

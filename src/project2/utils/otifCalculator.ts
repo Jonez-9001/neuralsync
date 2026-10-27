@@ -7,6 +7,10 @@ export function calculateRowStatus(row: DispatchRow, rules: RulesConfig): Dispat
   // On time: actual out is valid and on or before promised date plus grace hours
   const graceMs = (rules.graceHours || 0) * 60 * 60 * 1000;
   const onTime = Number.isFinite(promised) && Number.isFinite(actual) && actual <= (promised + graceMs);
+  const lateHours =
+    Number.isFinite(promised) && Number.isFinite(actual) && actual > promised + graceMs
+      ? Math.round(((actual - (promised + graceMs)) / (1000 * 60 * 60)) * 10) / 10
+      : 0;
 
   // In full: shipped divided by ordered is at least cutoff percentage (guard against negative/zero quantities)
   const safeShipped = Math.max(0, row.shippedQty);
@@ -33,6 +37,7 @@ export function calculateRowStatus(row: DispatchRow, rules: RulesConfig): Dispat
     inFull,
     otif,
     failType,
+    lateHours,
   };
 }
 

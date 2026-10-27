@@ -14,6 +14,9 @@ import {
 import { 
   PredictiveAnalytics 
 } from './components/PredictiveAnalytics';
+import {
+  WarehouseReliabilityEngineV2
+} from './components/WarehouseReliabilityEngineV2';
 import { 
   RulesModal 
 } from './components/RulesModal';
@@ -352,17 +355,28 @@ export default function App() {
           </div>
         </div>
 
-        {/* Tab 1: Action Board ("Fix this week, in rupee order") */}
+        {/* Tab 1: Action Board ("Fix this week, in rupee order") + V2.0 Warehouse Reliability Engine */}
         {activeTab === 'dashboard' && (
-          <ActionBoard
-            items={enrichedItems}
-            rules={rules}
-            onUpdateItem={handleUpdateItem}
-            onSelectSKU={(code) => {
-              setSelectedSKUCode(code);
-              setActiveTab('countsheet');
-            }}
-          />
+          <div className="space-y-6">
+            <ActionBoard
+              items={enrichedItems}
+              rules={rules}
+              onUpdateItem={handleUpdateItem}
+              onSelectSKU={(code) => {
+                setSelectedSKUCode(code);
+                setActiveTab('countsheet');
+              }}
+            />
+            <WarehouseReliabilityEngineV2
+              items={enrichedItems}
+              rules={rules}
+              summary={summary}
+              onSelectSKU={(code) => {
+                setSelectedSKUCode(code);
+                setActiveTab('countsheet');
+              }}
+            />
+          </div>
         )}
 
         {/* Tab 2: Count Sheet (Spreadsheet Mode) */}

@@ -108,7 +108,7 @@ export const CustomerPromiseEngineV2: React.FC<CustomerPromiseEngineV2Props> = (
       };
     });
 
-    const failedOrders = evaluated.filter((r) => !r.otifPass);
+    const failedOrders = evaluated.filter((r) => !r.otif);
     const minorCount = evaluated.filter((r) => r.severity === 'Minor (1-2 Days)').length;
     const moderateCount = evaluated.filter((r) => r.severity === 'Moderate (3-7 Days)').length;
     const criticalCount = evaluated.filter((r) => r.severity === 'Critical (8+ Days)').length;
@@ -147,7 +147,7 @@ export const CustomerPromiseEngineV2: React.FC<CustomerPromiseEngineV2Props> = (
         };
       }
       customerMap[r.customer].total++;
-      if (r.otifPass) customerMap[r.customer].passes++;
+      if (r.otif) customerMap[r.customer].passes++;
       else {
         customerMap[r.customer].fails++;
         customerMap[r.customer].impactedRupees += r.orderValueRupees;
@@ -172,7 +172,7 @@ export const CustomerPromiseEngineV2: React.FC<CustomerPromiseEngineV2Props> = (
     evaluated.forEach((r) => {
       if (!partFailMap[r.part]) partFailMap[r.part] = { part: r.part, fails: 0, total: 0 };
       partFailMap[r.part].total++;
-      if (!r.otifPass) partFailMap[r.part].fails++;
+      if (!r.otif) partFailMap[r.part].fails++;
     });
     const repeatOffenderParts = Object.values(partFailMap)
       .filter((p) => p.fails > 0)
@@ -451,7 +451,7 @@ export const CustomerPromiseEngineV2: React.FC<CustomerPromiseEngineV2Props> = (
             </div>
 
             <div className="space-y-2">
-              {Object.entries(v2Analytics.rootCauseCounts)
+              {(Object.entries(v2Analytics.rootCauseCounts) as [string, number][])
                 .sort((a, b) => b[1] - a[1])
                 .map(([cat, count]) => {
                   const pct =
