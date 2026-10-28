@@ -306,14 +306,14 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-bold text-white tracking-tight">
-                    Manufacturing Intelligence Suite &amp; Operations Control Tower
+                    Manufacturing Intelligence &amp; Decision Suite
                   </span>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                    CFO + Supply Chain + Logistics + Warehouse
+                    Cash + Revenue + Profit + Inventory + Executive Decisions
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  P1 Cash Recovery (Cash) • P2 Customer Promise (Revenue) • P3 Profit Protection (Margin) • P4 Warehouse Reliability (Integrity) • P5 Monday Tower
+                  P1 Cash Recovery • P2 Customer Promise • P3 Profit Protection • P4 Warehouse Reliability • P5 CEO Monday Briefing Engine
                 </p>
               </div>
           </div>
@@ -384,7 +384,7 @@ Reply with *P1, P2, P3, P4, or P5* to open that drill-down today.`;
               }`}
             >
               <Radio className="w-3.5 h-3.5" />
-              <span>P5: Monday Tower</span>
+              <span>P5: CEO Briefing</span>
             </button>
           </div>
         </div>

@@ -71,13 +71,18 @@ export const TopBar: React.FC<TopBarProps> = ({
             <Radio className="w-5 h-5 animate-pulse" />
           </div>
           <div className="flex flex-col">
-            <button 
-              onClick={() => setCurrentTab('tower')}
-              className="text-left font-bold text-base sm:text-lg tracking-tight hover:text-amber-500 transition-colors whitespace-nowrap"
-            >
-              {t.appName}
-            </button>
-            <span className="text-[11px] text-neutral-500 font-mono hidden sm:inline truncate max-w-[200px]">
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => setCurrentTab('tower')}
+                className="text-left font-bold text-base sm:text-lg tracking-tight hover:text-amber-500 transition-colors whitespace-nowrap"
+              >
+                {t.appName}
+              </button>
+              <span className="hidden lg:inline-block px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-400 uppercase">
+                P5 • Executive Control Tower
+              </span>
+            </div>
+            <span className="text-[11px] text-neutral-500 font-mono hidden sm:inline truncate max-w-[260px]">
               {clientName}
             </span>
           </div>

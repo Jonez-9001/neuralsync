@@ -19,6 +19,7 @@ import { EncryptedChat } from './components/EncryptedChat';
 import { ERPSyncModal } from './components/ERPSyncModal';
 import { QuarterlyAnalytics } from './components/QuarterlyAnalytics';
 import { RetainerHabitExplainer } from './components/RetainerHabitExplainer';
+import { CEOMondayBriefingEngineV2 } from './components/CEOMondayBriefingEngineV2';
 
 import { RefreshCw, CheckCircle2, Layers } from 'lucide-react';
 import { AMBATTUR_FABRICATION_SAMPLE, DEFAULT_RULES as P1_DEFAULT_RULES } from '../project1/data/initialData';
@@ -193,6 +194,14 @@ export default function App({ onJumpToEngine }: Project5AppProps = {}) {
         {/* Tab 1: Control Tower Primary View */}
         {currentTab === 'tower' && (
           <div className="space-y-6 animate-in fade-in duration-150">
+            {/* Version 2.0: CEO Monday Briefing Engine & Executive Operations Control Tower */}
+            <CEOMondayBriefingEngineV2
+              towerData={towerData}
+              isDarkMode={isDarkMode}
+              onOpenProject={(id) => setOpenedProjectId(id)}
+              onJumpToEngine={onJumpToEngine}
+            />
+
             {/* The Core WhatsApp Note (The Product) */}
             <MondayNoteCard
               towerData={towerData}

@@ -47,8 +47,8 @@ export interface Translations {
 
 export const TRANSLATIONS: Record<Language, Translations> = {
   en: {
-    appName: 'Monday Control Tower',
-    tagline: 'Six numbers before 9 AM on WhatsApp. The habit you sell.',
+    appName: 'CEO Monday Briefing Engine',
+    tagline: 'Executive Operations Control Tower • Cash, Revenue, Profit & Inventory Decisions before 9 AM.',
     weekEnding: 'Week ending',
     before9am: 'Send before 9:00 AM',
     gateOpensWarning: 'After 9:00 AM he is on the shop floor and the note is dead.',

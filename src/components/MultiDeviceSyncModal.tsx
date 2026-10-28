@@ -32,6 +32,7 @@ export const SYNC_KEYS = [
   'monday_control_tower_v1',
   'monday_tower_data_v1',
   'p5_unpaid_bills_v1',
+  'p5_executive_actions_v2',
 ];
 
 export const MultiDeviceSyncModal: React.FC<MultiDeviceSyncModalProps> = ({

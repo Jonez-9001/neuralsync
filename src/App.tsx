@@ -303,10 +303,10 @@ export default function App() {
                     ? 'bg-rose-500 text-white shadow-sm font-bold'
                     : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
-                title="Project 5: Monday 9AM Control Tower & Overdue Debtors"
+                title="Project 5: CEO Monday Briefing Engine (Executive Operations Control Tower — Tells Leadership What To Do Next)"
               >
                 <Radio className="w-3.5 h-3.5" />
-                <span>{useCommercialNames ? 'Monday Control Tower' : 'P5 (Monday Tower)'}</span>
+                <span>{useCommercialNames ? 'CEO Monday Briefing' : 'P5 (CEO Briefing)'}</span>
               </button>
 
               <button
