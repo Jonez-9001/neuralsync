@@ -66,10 +66,10 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <div>
               <span className="text-base font-bold tracking-tight text-neutral-900 dark:text-neutral-100">
-                Project 1 : Factory Cash Audit
+                Cash Recovery Engine
               </span>
-              <span className="hidden sm:inline-block ml-2 text-xs text-neutral-400 dark:text-neutral-500 font-mono">
-                Ambattur Unit Sample
+              <span className="hidden sm:inline-block ml-2 px-2 py-0.5 rounded bg-amber-500/15 border border-amber-500/30 text-[10px] text-amber-600 dark:text-amber-300 font-mono font-bold uppercase">
+                P1 • Dead Working Capital
               </span>
             </div>
           </div>
