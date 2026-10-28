@@ -81,12 +81,13 @@ export const MultiDeviceSyncModal: React.FC<MultiDeviceSyncModalProps> = ({
 
   const handleCopyClientShareLink = () => {
     const packet = generateSyncPacket();
-    const url = `${window.location.origin}${window.location.pathname}?client_sync=${encodeURIComponent(packet)}`;
+    // Use URL hash (#client_sync=...) so large 5-engine payloads never trigger HTTP 431/414 header size errors
+    const url = `${window.location.origin}${window.location.pathname}#client_sync=${encodeURIComponent(packet)}`;
     navigator.clipboard.writeText(url);
     setCopiedShareLink(true);
     setStatusMessage({
       type: 'ok',
-      text: 'Copied 1-Click Shareable Client Link! When the Factory Owner opens this link, it automatically hydrates your audited data in Brand-Named Client Presentation Mode.',
+      text: 'Copied 1-Click Shareable Client Link! Uses zero-limit hash routing so large 5-engine ledgers open cleanly in any browser.',
     });
     setTimeout(() => setCopiedShareLink(false), 3000);
   };

@@ -11,8 +11,16 @@ import {
   BarChart3,
   Milestone,
   Sparkles,
-  Printer
+  Printer,
+  FileSpreadsheet,
+  Download
 } from 'lucide-react';
+import {
+  buildSixSheetDataset,
+  downloadCommandCenterWorkbook,
+  OWNER_ASSIGNMENT_MATRIX,
+  RagColor
+} from '../utils/excelCommandCenterExporter';
 import { AMBATTUR_FABRICATION_SAMPLE, DEFAULT_RULES as P1_DEFAULT_RULES } from '../project1/data/initialData';
 import { generateOwnerReport } from '../project1/utils/calculations';
 import { INITIAL_DISPATCHES, INITIAL_RULES as P2_DEFAULT_RULES } from '../project2/data/initialData';
@@ -142,10 +150,19 @@ function formatFullINR(val: number): string {
 export const MasterExecutiveDashboard: React.FC<MasterExecutiveDashboardProps> = ({
   onNavigateEngine,
 }) => {
-  const [viewMode, setViewMode] = useState<'ceo_dashboard' | 'pm_roadmap'>('ceo_dashboard');
+  const [viewMode, setViewMode] = useState<'ceo_dashboard' | 'excel_6sheets' | 'pm_roadmap'>('ceo_dashboard');
+  const [activeSheet, setActiveSheet] = useState<'sheet1' | 'sheet2' | 'sheet3' | 'sheet4' | 'sheet5' | 'sheet6'>('sheet1');
+  const [useEnterpriseScale, setUseEnterpriseScale] = useState<boolean>(false);
   const [tierFilter, setTierFilter] = useState<'ALL' | PriorityTier>('ALL');
   const [phaseFilter, setPhaseFilter] = useState<'ALL' | RoadmapPhase>('ALL');
   const [refreshTick, setRefreshTick] = useState(0);
+
+  const sixSheets = useMemo(
+    () => buildSixSheetDataset(useEnterpriseScale),
+    [useEnterpriseScale, refreshTick]
+  );
+
+  const ragDot = (r: RagColor) => (r === 'GREEN' ? '🟢' : r === 'AMBER' ? '🟡' : '🔴');
 
   useEffect(() => {
     const onStorage = () => setRefreshTick((t) => t + 1);
@@ -390,6 +407,8 @@ export const MasterExecutiveDashboard: React.FC<MasterExecutiveDashboardProps> =
           <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
             {viewMode === 'ceo_dashboard'
               ? 'Master Executive Dashboard & Factory Health Score'
+              : viewMode === 'excel_6sheets'
+              ? '6-Sheet Excel Command Center, KPI Formulas & Phase 3 RAG Engine'
               : 'Product Manager Backlog (P0–P3) & 3-Phase Implementation Roadmap'}
           </h1>
           <p className="text-xs text-slate-400">
@@ -397,32 +416,51 @@ export const MasterExecutiveDashboard: React.FC<MasterExecutiveDashboardProps> =
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0 no-print">
+        <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0 no-print">
           <button
             onClick={() => setViewMode('ceo_dashboard')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 ${
               viewMode === 'ceo_dashboard'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Gauge className="w-4 h-4" />
-            <span>Master CEO Dashboard (7 Sections)</span>
+            <Gauge className="w-3.5 h-3.5" />
+            <span>CEO Dashboard</span>
+          </button>
+          <button
+            onClick={() => setViewMode('excel_6sheets')}
+            className={`px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 ${
+              viewMode === 'excel_6sheets'
+                ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                : 'text-emerald-300 hover:text-white'
+            }`}
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span>6-Sheet Excel &amp; RAG</span>
           </button>
           <button
             onClick={() => setViewMode('pm_roadmap')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 ${
               viewMode === 'pm_roadmap'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Milestone className="w-4 h-4" />
-            <span>PM Backlog &amp; Phase 1–3 Roadmap</span>
+            <Milestone className="w-3.5 h-3.5" />
+            <span>PM Roadmap</span>
+          </button>
+          <button
+            onClick={() => downloadCommandCenterWorkbook(useEnterpriseScale)}
+            className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+            title="Download real 6-Sheet .xlsx Excel Workbook with live SUMIFS, COUNTIF, IF & TODAY() formulas"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Download 6-Sheet .xlsx</span>
           </button>
           <button
             onClick={() => window.print()}
-            className="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
+            className="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5 text-amber-400" />
             <span>PDF</span>
@@ -895,6 +933,420 @@ export const MasterExecutiveDashboard: React.FC<MasterExecutiveDashboardProps> =
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* VIEW 3: 6-SHEET EXCEL STRUCTURE, FORMULAS & PHASE 3 RAG LOGIC         */}
+      {/* ===================================================================== */}
+      {viewMode === 'excel_6sheets' && (
+        <div className="space-y-6">
+          {/* Top 3-Step Build Sequence & Scale Calibration Bar */}
+          <div className="rounded-2xl bg-slate-900 border border-emerald-500/40 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 text-xs">
+            <div className="flex flex-wrap items-center gap-2 font-mono">
+              <span className="px-2.5 py-1 rounded bg-slate-950 border border-slate-700 text-amber-300 font-bold">
+                1. 6-Sheet Excel Structure
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+              <span className="px-2.5 py-1 rounded bg-slate-950 border border-slate-700 text-cyan-300 font-bold">
+                2. SUMIFS / COUNTIF Formulas
+              </span>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+              <span className="px-2.5 py-1 rounded bg-slate-950 border border-slate-700 text-emerald-300 font-bold">
+                3. RAG + Owner Due-Date Logic
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setUseEnterpriseScale(!useEnterpriseScale)}
+                className={`px-3 py-1.5 rounded-lg font-mono font-bold border cursor-pointer transition ${
+                  useEnterpriseScale
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                    : 'bg-slate-950 text-slate-300 border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                {useEnterpriseScale ? 'Scale: ₹10L+ Mid-Size Plant (Active)' : 'Scale: Live MSME Ledger (Click for ₹10L+ Scale)'}
+              </button>
+              <button
+                onClick={() => downloadCommandCenterWorkbook(useEnterpriseScale)}
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Live .xlsx (With Formulas)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Final Executive Dashboard Layout + Owner Matrix & Formula Reference */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Left: Exact FACTORY COMMAND CENTER Executive Wireframe Card */}
+            <div className="lg:col-span-6 rounded-2xl bg-slate-950 border border-slate-800 p-5 font-mono text-xs space-y-4">
+              <div className="border-b border-slate-800 pb-2 flex items-center justify-between">
+                <span className="text-sm font-black text-amber-400 tracking-wider">
+                  FACTORY COMMAND CENTER
+                </span>
+                <span className="px-2.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
+                  Health Score: {sixSheets.sheet1Summary.factoryHealthScore}/100
+                </span>
+              </div>
+
+              {/* 4 Pillar RAG Grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="text-[10px] text-slate-400">[Cash · P1 Dead Stock]</div>
+                  <div className="text-base font-black text-white mt-0.5">
+                    {formatCompactINR(sixSheets.sheet1Summary.cashStuck)} {ragDot(sixSheets.sheet1Summary.cashRag)}
+                  </div>
+                  <div className="text-[10px] text-slate-500">&gt;₹10L 🔴 · ₹5–10L 🟡 · &lt;₹5L 🟢</div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="text-[10px] text-slate-400">[Revenue · P2 OTIF]</div>
+                  <div className="text-base font-black text-white mt-0.5">
+                    {Math.round(sixSheets.sheet1Summary.otifRatio * 100)}% {ragDot(sixSheets.sheet1Summary.otifRag)}
+                  </div>
+                  <div className="text-[10px] text-slate-500">95%+ 🟢 · 90–95% 🟡 · &lt;90% 🔴</div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="text-[10px] text-slate-400">[Profit · P3 Freight Leak]</div>
+                  <div className="text-base font-black text-white mt-0.5">
+                    {formatCompactINR(sixSheets.sheet1Summary.freightLeakage)} {ragDot(sixSheets.sheet1Summary.freightRag)}
+                  </div>
+                  <div className="text-[10px] text-slate-500">&lt;₹25K 🟢 · ₹25–50K 🟡 · &gt;₹50K 🔴</div>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800">
+                  <div className="text-[10px] text-slate-400">[Inventory · P4 Accuracy]</div>
+                  <div className="text-base font-black text-white mt-0.5">
+                    {Math.round(sixSheets.sheet1Summary.accuracyRatio * 100)}% {ragDot(sixSheets.sheet1Summary.accuracyRag)}
+                  </div>
+                  <div className="text-[10px] text-slate-500">≥98% 🟢 · 95–98% 🟡 · &lt;95% 🔴</div>
+                </div>
+              </div>
+
+              {/* Action Tracker + Department Scorecard */}
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase text-amber-400 font-bold">Action Tracker</div>
+                  <div>Open: <strong className="text-white">{sixSheets.sheet1Summary.actionCounts.open}</strong></div>
+                  <div>Overdue: <strong className="text-rose-400">{sixSheets.sheet1Summary.actionCounts.overdue}</strong></div>
+                  <div>Completed: <strong className="text-emerald-400">{sixSheets.sheet1Summary.actionCounts.completed}</strong></div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[10px] uppercase text-cyan-400 font-bold">Department Scorecard</div>
+                  <div>Inventory : <strong>{sixSheets.sheet1Summary.deptScores.inventory}</strong> {sixSheets.sheet1Summary.deptScores.inventory >= 85 ? '🟢' : sixSheets.sheet1Summary.deptScores.inventory >= 75 ? '🟡' : '🔴'}</div>
+                  <div>Dispatch  : <strong>{sixSheets.sheet1Summary.deptScores.dispatch}</strong> {sixSheets.sheet1Summary.deptScores.dispatch >= 85 ? '🟢' : sixSheets.sheet1Summary.deptScores.dispatch >= 75 ? '🟡' : '🔴'}</div>
+                  <div>Logistics : <strong>{sixSheets.sheet1Summary.deptScores.logistics}</strong> {sixSheets.sheet1Summary.deptScores.logistics >= 85 ? '🟢' : sixSheets.sheet1Summary.deptScores.logistics >= 75 ? '🟡' : '🔴'}</div>
+                  <div>Warehouse : <strong>{sixSheets.sheet1Summary.deptScores.warehouse}</strong> {sixSheets.sheet1Summary.deptScores.warehouse >= 85 ? '🟢' : sixSheets.sheet1Summary.deptScores.warehouse >= 75 ? '🟡' : '🔴'}</div>
+                </div>
+              </div>
+
+              {/* CEO Monday Briefing Bullets */}
+              <div className="pt-2 border-t border-slate-800 space-y-1">
+                <div className="text-[10px] uppercase text-emerald-400 font-bold">CEO Monday Briefing</div>
+                {sixSheets.sheet1Summary.ceoBriefingBullets.map((b, i) => (
+                  <div key={i} className="text-[11px] text-slate-300">• {b}</div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right: Owner Assignment Matrix, Priority Due Date Formula & Phase 2-3 Excel Formulas */}
+            <div className="lg:col-span-6 rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4 text-xs">
+              <div>
+                <h3 className="text-sm font-black text-white">
+                  Owner Assignment Matrix &amp; Priority Due-Date Formula
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Embedded directly into the exported <code>.xlsx</code> workbook so Excel, Google Sheets, Power BI, and Web share 100% identical logic.
+                </p>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950">
+                <table className="w-full text-left font-mono text-xs">
+                  <thead className="bg-slate-900 text-slate-400 text-[10px] uppercase border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 px-3">Operational Area</th>
+                      <th className="py-2 px-3">Default Owner</th>
+                      <th className="py-2 px-3">SLA Due Rule</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {OWNER_ASSIGNMENT_MATRIX.map((m) => (
+                      <tr key={m.area}>
+                        <td className="py-2 px-3 text-white font-sans font-semibold">{m.area}</td>
+                        <td className="py-2 px-3 text-amber-300">{m.owner}</td>
+                        <td className="py-2 px-3 text-emerald-400">{m.ruleLabel}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="space-y-2 font-mono text-[11px]">
+                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
+                  <div className="text-amber-400 font-bold">Auto Due-Date Formula (Sheet 6):</div>
+                  <code className="text-slate-200 break-all">
+                    =IF(Priority=&quot;Critical&quot;,TODAY()+3,IF(Priority=&quot;High&quot;,TODAY()+7,IF(Priority=&quot;Medium&quot;,TODAY()+14,TODAY()+30)))
+                  </code>
+                </div>
+                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-1">
+                  <div className="text-cyan-400 font-bold">Core Sheet Formulas (Phase 2 &amp; Phase 3):</div>
+                  <div className="text-slate-300">• P1 Dead Stock: <code>=SUMIFS(ValueRange,IdleDaysRange,&quot;&gt;180&quot;)</code></div>
+                  <div className="text-slate-300">• P2 OTIF %: <code>=COUNTIF(OTIFRange,&quot;YES&quot;)/COUNTA(OTIFRange)</code></div>
+                  <div className="text-slate-300">• P2 Rev Risk: <code>=SUMIFS(OrderValue,OTIFRange,&quot;NO&quot;)</code></div>
+                  <div className="text-slate-300">• P3 Leakage: <code>=ActualFreight-ExpectedFreight</code> | <code>=Freight/SalesValue</code></div>
+                  <div className="text-slate-300">• P4 Variance Value: <code>=ABS(PhysicalQty-SystemQty)*UnitCost</code></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive 6-Sheet Workbook Inspector */}
+          <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
+            <div className="bg-slate-950 border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center gap-1.5 text-xs font-mono">
+              {[
+                { id: 'sheet1', label: 'Sheet 1: Executive Dashboard' },
+                { id: 'sheet2', label: 'Sheet 2: P1 Dead Inventory' },
+                { id: 'sheet3', label: 'Sheet 3: P2 OTIF' },
+                { id: 'sheet4', label: 'Sheet 4: P3 Freight' },
+                { id: 'sheet5', label: 'Sheet 5: P4 Bin Audit' },
+                { id: 'sheet6', label: 'Sheet 6: Action Tracker' },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveSheet(s.id as any)}
+                  className={`px-3 py-1.5 rounded-lg font-bold cursor-pointer transition ${
+                    activeSheet === s.id
+                      ? 'bg-emerald-500 text-slate-950'
+                      : 'text-slate-400 hover:text-white bg-slate-900 border border-slate-800'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-4 overflow-x-auto">
+              {activeSheet === 'sheet1' && (
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 px-3">KPI Metric</th>
+                      <th className="py-2 px-3 text-right">Calculated Value</th>
+                      <th className="py-2 px-3 text-center">Phase 3 RAG</th>
+                      <th className="py-2 px-3">Excel Formula</th>
+                      <th className="py-2 px-3">Assigned Owner</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    <tr>
+                      <td className="py-2.5 px-3 font-sans font-bold text-white">Factory Health Score</td>
+                      <td className="py-2.5 px-3 text-right font-black text-amber-300">{sixSheets.sheet1Summary.factoryHealthScore}/100</td>
+                      <td className="py-2.5 px-3 text-center">{sixSheets.sheet1Summary.factoryHealthScore >= 85 ? '🟢 GREEN' : '🟡 AMBER'}</td>
+                      <td className="py-2.5 px-3 text-slate-400">=ROUND(0.30*Inv + 0.25*OTIF + 0.25*Freight + 0.20*Acc, 0)</td>
+                      <td className="py-2.5 px-3 text-slate-300">Plant Head</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-sans font-bold text-white">Cash Stuck (P1)</td>
+                      <td className="py-2.5 px-3 text-right font-black text-white">{formatFullINR(sixSheets.sheet1Summary.cashStuck)}</td>
+                      <td className="py-2.5 px-3 text-center">{ragDot(sixSheets.sheet1Summary.cashRag)} {sixSheets.sheet1Summary.cashRag}</td>
+                      <td className="py-2.5 px-3 text-slate-400">=SUMIFS(ValueRange, IdleDaysRange, &quot;&gt;180&quot;)</td>
+                      <td className="py-2.5 px-3 text-slate-300">Inventory Manager (7d)</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-sans font-bold text-white">OTIF % (P2)</td>
+                      <td className="py-2.5 px-3 text-right font-black text-white">{Math.round(sixSheets.sheet1Summary.otifRatio * 100)}%</td>
+                      <td className="py-2.5 px-3 text-center">{ragDot(sixSheets.sheet1Summary.otifRag)} {sixSheets.sheet1Summary.otifRag}</td>
+                      <td className="py-2.5 px-3 text-slate-400">=COUNTIF(OTIFRange,&quot;YES&quot;)/COUNTA(OTIFRange)</td>
+                      <td className="py-2.5 px-3 text-slate-300">Dispatch Head (3d)</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-sans font-bold text-white">Freight Leakage (P3)</td>
+                      <td className="py-2.5 px-3 text-right font-black text-white">{formatFullINR(sixSheets.sheet1Summary.freightLeakage)}</td>
+                      <td className="py-2.5 px-3 text-center">{ragDot(sixSheets.sheet1Summary.freightRag)} {sixSheets.sheet1Summary.freightRag}</td>
+                      <td className="py-2.5 px-3 text-slate-400">=SUM(ActualFreight - ExpectedFreight)</td>
+                      <td className="py-2.5 px-3 text-slate-300">Logistics Head (5d)</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3 font-sans font-bold text-white">Inventory Accuracy % (P4)</td>
+                      <td className="py-2.5 px-3 text-right font-black text-white">{Math.round(sixSheets.sheet1Summary.accuracyRatio * 100)}%</td>
+                      <td className="py-2.5 px-3 text-center">{ragDot(sixSheets.sheet1Summary.accuracyRag)} {sixSheets.sheet1Summary.accuracyRag}</td>
+                      <td className="py-2.5 px-3 text-slate-400">=MatchingSKUs / TotalSKUs</td>
+                      <td className="py-2.5 px-3 text-slate-300">Stores Head (3d)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+
+              {activeSheet === 'sheet2' && (
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 px-2.5">SKU</th>
+                      <th className="py-2 px-2.5">Description</th>
+                      <th className="py-2 px-2.5 text-right">Qty</th>
+                      <th className="py-2 px-2.5 text-right">Value</th>
+                      <th className="py-2 px-2.5 text-right">Idle Days</th>
+                      <th className="py-2 px-2.5">Age Bucket</th>
+                      <th className="py-2 px-2.5">ABC</th>
+                      <th className="py-2 px-2.5">Status</th>
+                      <th className="py-2 px-2.5">Owner</th>
+                      <th className="py-2 px-2.5">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {sixSheets.sheet2P1.slice(0, 12).map((r) => (
+                      <tr key={r.sku}>
+                        <td className="py-2 px-2.5 text-amber-300">{r.sku}</td>
+                        <td className="py-2 px-2.5 font-sans text-white">{r.description}</td>
+                        <td className="py-2 px-2.5 text-right">{r.qty}</td>
+                        <td className="py-2 px-2.5 text-right font-bold text-white">{formatFullINR(r.value)}</td>
+                        <td className="py-2 px-2.5 text-right">{r.idleDays}</td>
+                        <td className="py-2 px-2.5">{r.ageBucket}</td>
+                        <td className="py-2 px-2.5 font-bold">{r.abcClass}</td>
+                        <td className={`py-2 px-2.5 font-bold ${r.status === 'Dead' ? 'text-rose-400' : 'text-emerald-400'}`}>{r.status}</td>
+                        <td className="py-2 px-2.5 text-slate-300">{r.owner}</td>
+                        <td className="py-2 px-2.5 text-slate-400">{r.dueDate}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {activeSheet === 'sheet3' && (
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 px-2.5">Order No</th>
+                      <th className="py-2 px-2.5">Customer</th>
+                      <th className="py-2 px-2.5">Required Date</th>
+                      <th className="py-2 px-2.5">Actual Date</th>
+                      <th className="py-2 px-2.5 text-right">Ordered</th>
+                      <th className="py-2 px-2.5 text-right">Delivered</th>
+                      <th className="py-2 px-2.5 text-center">OTIF</th>
+                      <th className="py-2 px-2.5 text-right">Delay Days</th>
+                      <th className="py-2 px-2.5">Root Cause</th>
+                      <th className="py-2 px-2.5">Owner</th>
+                      <th className="py-2 px-2.5">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {sixSheets.sheet3P2.slice(0, 12).map((r) => (
+                      <tr key={r.orderNo}>
+                        <td className="py-2 px-2.5 text-emerald-300">{r.orderNo}</td>
+                        <td className="py-2 px-2.5 font-sans text-white">{r.customer}</td>
+                        <td className="py-2 px-2.5">{r.requiredDate}</td>
+                        <td className="py-2 px-2.5">{r.actualDate}</td>
+                        <td className="py-2 px-2.5 text-right">{r.orderedQty}</td>
+                        <td className="py-2 px-2.5 text-right">{r.deliveredQty}</td>
+                        <td className={`py-2 px-2.5 text-center font-black ${r.otif === 'YES' ? 'text-emerald-400' : 'text-rose-400'}`}>{r.otif}</td>
+                        <td className="py-2 px-2.5 text-right">{r.delayDays}</td>
+                        <td className="py-2 px-2.5 font-sans text-slate-300">{r.rootCause}</td>
+                        <td className="py-2 px-2.5 text-slate-300">{r.owner}</td>
+                        <td className="py-2 px-2.5 text-slate-400">{r.dueDate}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {activeSheet === 'sheet4' && (
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 px-2.5">Route</th>
+                      <th className="py-2 px-2.5">Customer</th>
+                      <th className="py-2 px-2.5 text-right">Expected Freight</th>
+                      <th className="py-2 px-2.5 text-right">Actual Freight</th>
+                      <th className="py-2 px-2.5 text-right">Leakage</th>
+                      <th className="py-2 px-2.5">Carrier</th>
+                      <th className="py-2 px-2.5">Status</th>
+                      <th className="py-2 px-2.5">Owner</th>
+                      <th className="py-2 px-2.5">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {sixSheets.sheet4P3.slice(0, 12).map((r, idx) => (
+                      <tr key={idx}>
+                        <td className="py-2 px-2.5 font-sans text-white">{r.route}</td>
+                        <td className="py-2 px-2.5 font-sans text-slate-300">{r.customer}</td>
+                        <td className="py-2 px-2.5 text-right">{formatFullINR(r.expectedFreight)}</td>
+                        <td className="py-2 px-2.5 text-right font-bold text-white">{formatFullINR(r.actualFreight)}</td>
+                        <td className={`py-2 px-2.5 text-right font-black ${r.leakage > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>{formatFullINR(r.leakage)}</td>
+                        <td className="py-2 px-2.5 font-sans text-slate-300">{r.carrier}</td>
+                        <td className="py-2 px-2.5">{r.status}</td>
+                        <td className="py-2 px-2.5 text-slate-300">{r.owner}</td>
+                        <td className="py-2 px-2.5 text-slate-400">{r.dueDate}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {activeSheet === 'sheet5' && (
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 px-2.5">Item</th>
+                      <th className="py-2 px-2.5">Bin</th>
+                      <th className="py-2 px-2.5 text-right">System Qty</th>
+                      <th className="py-2 px-2.5 text-right">Physical Qty</th>
+                      <th className="py-2 px-2.5 text-right">Variance</th>
+                      <th className="py-2 px-2.5 text-right">Variance Value</th>
+                      <th className="py-2 px-2.5">Status</th>
+                      <th className="py-2 px-2.5">Owner</th>
+                      <th className="py-2 px-2.5">Due Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {sixSheets.sheet5P4.slice(0, 12).map((r) => (
+                      <tr key={r.item}>
+                        <td className="py-2 px-2.5 font-sans text-white">{r.item}</td>
+                        <td className="py-2 px-2.5 text-fuchsia-300">{r.bin}</td>
+                        <td className="py-2 px-2.5 text-right">{r.systemQty}</td>
+                        <td className="py-2 px-2.5 text-right">{r.physicalQty}</td>
+                        <td className={`py-2 px-2.5 text-right font-bold ${r.variance === 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{r.variance}</td>
+                        <td className="py-2 px-2.5 text-right font-bold text-white">{formatFullINR(r.varianceValue)}</td>
+                        <td className="py-2 px-2.5">{r.status}</td>
+                        <td className="py-2 px-2.5 text-slate-300">{r.owner}</td>
+                        <td className="py-2 px-2.5 text-slate-400">{r.dueDate}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+
+              {activeSheet === 'sheet6' && (
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="py-2 px-2.5">Issue ID</th>
+                      <th className="py-2 px-2.5">Project</th>
+                      <th className="py-2 px-2.5">Issue</th>
+                      <th className="py-2 px-2.5">Priority</th>
+                      <th className="py-2 px-2.5">Owner</th>
+                      <th className="py-2 px-2.5">Due Date (Formula)</th>
+                      <th className="py-2 px-2.5">Status</th>
+                      <th className="py-2 px-2.5">Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {sixSheets.sheet6Actions.map((r) => (
+                      <tr key={r.issueId}>
+                        <td className="py-2 px-2.5 text-amber-300 font-bold">{r.issueId}</td>
+                        <td className="py-2 px-2.5 text-slate-300">{r.project}</td>
+                        <td className="py-2 px-2.5 font-sans font-bold text-white">{r.issue}</td>
+                        <td className="py-2 px-2.5 font-bold text-rose-300">{r.priority}</td>
+                        <td className="py-2 px-2.5 text-emerald-300">{r.owner}</td>
+                        <td className="py-2 px-2.5">{r.dueDate}</td>
+                        <td className={`py-2 px-2.5 font-bold ${r.status === 'Completed' ? 'text-emerald-400' : r.status === 'Overdue' ? 'text-rose-400' : 'text-amber-300'}`}>{r.status}</td>
+                        <td className="py-2 px-2.5 font-sans text-slate-400">{r.remarks}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </div>
       )}

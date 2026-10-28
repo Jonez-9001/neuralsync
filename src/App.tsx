@@ -125,31 +125,40 @@ export default function App() {
     } catch {}
   }, [clientSlots, activeClientId]);
 
-  // Hydrate 1-Click Shareable Client Link (?client_sync=...) on mount
+  // Hydrate 1-Click Shareable Client Link (#client_sync=... or ?client_sync=...) on mount & hashchange
   useEffect(() => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const encoded = params.get('client_sync');
-      if (encoded) {
-        const decoded = decodeURIComponent(escape(atob(encoded)));
-        const parsed = JSON.parse(decoded);
-        const engines = parsed.engines || parsed;
-        SYNC_KEYS.forEach((k) => {
-          if (engines[k] !== undefined) {
-            localStorage.setItem(
-              k,
-              typeof engines[k] === 'string' ? engines[k] : JSON.stringify(engines[k])
-            );
-          }
-        });
-        setUseCommercialNames(true);
-        setIsClientLocked(true);
-        setSyncRefreshKey((k) => k + 1);
-        window.history.replaceState({}, document.title, window.location.pathname);
+    const hydrateFromUrl = () => {
+      try {
+        const searchParams = new URLSearchParams(window.location.search);
+        const hashRaw = window.location.hash.startsWith('#')
+          ? window.location.hash.slice(1)
+          : window.location.hash;
+        const hashParams = new URLSearchParams(hashRaw);
+        const encoded = hashParams.get('client_sync') || searchParams.get('client_sync');
+        if (encoded) {
+          const decoded = decodeURIComponent(escape(atob(encoded)));
+          const parsed = JSON.parse(decoded);
+          const engines = parsed.engines || parsed;
+          SYNC_KEYS.forEach((k) => {
+            if (engines[k] !== undefined) {
+              localStorage.setItem(
+                k,
+                typeof engines[k] === 'string' ? engines[k] : JSON.stringify(engines[k])
+              );
+            }
+          });
+          setUseCommercialNames(true);
+          setIsClientLocked(true);
+          setSyncRefreshKey((k) => k + 1);
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      } catch (err) {
+        console.warn('Failed to hydrate client_sync URL param', err);
       }
-    } catch (err) {
-      console.warn('Failed to hydrate client_sync URL param', err);
-    }
+    };
+    hydrateFromUrl();
+    window.addEventListener('hashchange', hydrateFromUrl);
+    return () => window.removeEventListener('hashchange', hydrateFromUrl);
   }, []);
 
   // Listen for cross-tab BroadcastChannel & storage updates so Gate Tablet (P2) & Store Count Sheet (P4) sync live
