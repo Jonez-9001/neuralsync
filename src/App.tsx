@@ -18,7 +18,8 @@ import {
   Unlock,
   Briefcase,
   Building2,
-  Plus
+  Plus,
+  Gauge
 } from 'lucide-react';
 import Project1App from './project1/Project1App';
 import Project2App from './project2/Project2App';
@@ -29,8 +30,10 @@ import { MergedCommandCenter } from './MergedCommandCenter';
 import { CustomBundleCombinator } from './components/CustomBundleCombinator';
 import { SmartTallyMapperModal, TargetEngineType } from './components/SmartTallyMapperModal';
 import { MultiDeviceSyncModal, SYNC_KEYS } from './components/MultiDeviceSyncModal';
+import { MasterExecutiveDashboard } from './components/MasterExecutiveDashboard';
 
 type ArchitectureVersion =
+  | 'ceo_master'
   | 'standalone_p1'
   | 'standalone_p2'
   | 'standalone_p3'
@@ -54,6 +57,7 @@ export default function App() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_VERSION_MODE) as ArchitectureVersion | null;
       if (
+        saved === 'ceo_master' ||
         saved === 'standalone_p1' ||
         saved === 'standalone_p2' ||
         saved === 'standalone_p3' ||
@@ -67,7 +71,7 @@ export default function App() {
     } catch {
       // ignore
     }
-    return 'custom_combos';
+    return 'ceo_master';
   });
 
   // Commercial Rebranding Mode (P1-P5 Codes vs Manufacturing Control Tower Commercial Names)
@@ -245,6 +249,19 @@ export default function App() {
             {/* Left: Mode Switcher Buttons */}
             <div className="flex flex-wrap items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
               <button
+                onClick={() => setVersionMode('ceo_master')}
+                className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer flex items-center gap-1.5 text-[11px] ${
+                  versionMode === 'ceo_master'
+                    ? 'bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 shadow-sm font-black'
+                    : 'text-emerald-300 hover:text-white hover:bg-slate-800 border border-emerald-500/30'
+                }`}
+                title="2-Minute CEO Master Executive Dashboard (Factory Health Score) + PM Backlog (P0-P3) & 3-Phase Roadmap"
+              >
+                <Gauge className="w-3.5 h-3.5" />
+                <span>{useCommercialNames ? 'Factory Health & Roadmap' : 'CEO Master & Roadmap'}</span>
+              </button>
+
+              <button
                 onClick={() => setVersionMode('standalone_p1')}
                 className={`px-2.5 py-1 rounded-md font-semibold transition cursor-pointer flex items-center gap-1.5 text-[11px] ${
                   versionMode === 'standalone_p1'
@@ -418,6 +435,17 @@ export default function App() {
 
       {/* Render Selected Version */}
       <div className="flex-1" key={`${activeClientId}-${syncRefreshKey}`}>
+        {versionMode === 'ceo_master' && (
+          <MasterExecutiveDashboard
+            onNavigateEngine={(eng) => {
+              if (eng === 'p1') setVersionMode('standalone_p1');
+              if (eng === 'p2') setVersionMode('standalone_p2');
+              if (eng === 'p3') setVersionMode('standalone_p3');
+              if (eng === 'p4') setVersionMode('standalone_p4');
+              if (eng === 'p5') setVersionMode('standalone_p5');
+            }}
+          />
+        )}
         {versionMode === 'standalone_p1' && <Project1App />}
         {versionMode === 'standalone_p2' && <Project2App />}
         {versionMode === 'standalone_p3' && <Project3App />}
