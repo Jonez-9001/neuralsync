@@ -177,12 +177,12 @@ export const CEOMondayBriefingEngineV2: React.FC<CEOMondayBriefingEngineV2Props>
     const logisticsDeptScore = Math.max(48, Math.min(97, Math.round(100 - marginRiskPct * 1.15)));
     const warehouseDeptScore = Math.max(50, Math.min(99, inventoryAccuracyPct));
 
-    // Operations Health Score (0 - 100) & V2.0 Executive Risk Index (0 - 100)
+    // Factory Health Score (0 - 100): Exact CEO Formula = 30% Inventory + 25% OTIF + 25% Freight + 20% Warehouse Accuracy
     const operationsHealthScore = Math.round(
-      inventoryDeptScore * 0.25 +
-        dispatchDeptScore * 0.3 +
-        logisticsDeptScore * 0.2 +
-        warehouseDeptScore * 0.25
+      inventoryDeptScore * 0.30 +
+        dispatchDeptScore * 0.25 +
+        logisticsDeptScore * 0.25 +
+        warehouseDeptScore * 0.20
     );
     const executiveRiskIndex = Math.min(
       96,
