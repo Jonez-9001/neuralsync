@@ -35,6 +35,7 @@ import { LiquidationSimulator } from './components/LiquidationSimulator';
 import { AuditDossierModal } from './components/AuditDossierModal';
 import { TrialDataLoaderModal } from './components/TrialDataLoaderModal';
 import { TrialDataset } from './data/trialDatasets';
+import { CashRecoveryEngineV2 } from './components/CashRecoveryEngineV2';
 
 export default function App() {
   // Navigation & UI state
@@ -357,19 +358,27 @@ export default function App() {
         </div>
 
         {activeTab === 'report' && (
-          <OwnerReport
-            items={displayItems}
-            rules={rules}
-            currency={currency}
-            userRole={currentRole}
-            onUpdateItemMovement={handleUpdateItemMovement}
-            onResetItems={handleResetItems}
-            onPrint={handlePrint}
-            onNavigateToStock={() => setActiveTab('stock')}
-            onOpenAuditDossier={() => setIsAuditDossierOpen(true)}
-            onOpenSimulator={() => setActiveTab('simulator')}
-            onOpenTrialModal={() => setIsTrialModalOpen(true)}
-          />
+          <>
+            <OwnerReport
+              items={displayItems}
+              rules={rules}
+              currency={currency}
+              userRole={currentRole}
+              onUpdateItemMovement={handleUpdateItemMovement}
+              onResetItems={handleResetItems}
+              onPrint={handlePrint}
+              onNavigateToStock={() => setActiveTab('stock')}
+              onOpenAuditDossier={() => setIsAuditDossierOpen(true)}
+              onOpenSimulator={() => setActiveTab('simulator')}
+              onOpenTrialModal={() => setIsTrialModalOpen(true)}
+            />
+            <CashRecoveryEngineV2
+              items={displayItems}
+              rules={rules}
+              currency={currency}
+              onNavigateToStock={() => setActiveTab('stock')}
+            />
+          </>
         )}
 
         {activeTab === 'stock' && (
