@@ -272,6 +272,14 @@ export const Header: React.FC<HeaderProps> = ({
             Stock Engine
           </button>
           <button
+            onClick={() => setActiveTab('simulator')}
+            className={`px-2.5 py-1 text-xs font-medium rounded whitespace-nowrap ${
+              activeTab === 'simulator' ? 'bg-amber-600 text-white' : 'text-amber-600 dark:text-amber-400'
+            }`}
+          >
+            Simulator
+          </button>
+          <button
             onClick={() => setActiveTab('rules')}
             className={`px-2.5 py-1 text-xs font-medium rounded whitespace-nowrap ${
               activeTab === 'rules' ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900' : 'text-neutral-500'

@@ -416,54 +416,54 @@ export const MasterExecutiveDashboard: React.FC<MasterExecutiveDashboardProps> =
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 shrink-0 no-print">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800 w-full lg:w-auto shrink-0 no-print">
           <button
             onClick={() => setViewMode('ceo_dashboard')}
-            className={`px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 ${
+            className={`px-3 py-2.5 sm:py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center justify-center gap-1.5 ${
               viewMode === 'ceo_dashboard'
                 ? 'bg-amber-500 text-slate-950 shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-300 hover:text-white bg-slate-900 sm:bg-transparent'
             }`}
           >
-            <Gauge className="w-3.5 h-3.5" />
+            <Gauge className="w-3.5 h-3.5 shrink-0" />
             <span>CEO Dashboard</span>
           </button>
           <button
             onClick={() => setViewMode('excel_6sheets')}
-            className={`px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 ${
+            className={`px-3 py-2.5 sm:py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center justify-center gap-1.5 ${
               viewMode === 'excel_6sheets'
                 ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                : 'text-emerald-300 hover:text-white'
+                : 'text-emerald-300 hover:text-white bg-slate-900 sm:bg-transparent'
             }`}
           >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>6-Sheet Excel &amp; RAG</span>
+            <FileSpreadsheet className="w-3.5 h-3.5 shrink-0" />
+            <span>6-Sheet Excel</span>
           </button>
           <button
             onClick={() => setViewMode('pm_roadmap')}
-            className={`px-3 py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center gap-1.5 ${
+            className={`px-3 py-2.5 sm:py-2 rounded-lg text-xs font-bold cursor-pointer transition flex items-center justify-center gap-1.5 ${
               viewMode === 'pm_roadmap'
                 ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                : 'text-slate-300 hover:text-white bg-slate-900 sm:bg-transparent'
             }`}
           >
-            <Milestone className="w-3.5 h-3.5" />
+            <Milestone className="w-3.5 h-3.5 shrink-0" />
             <span>PM Roadmap</span>
           </button>
           <button
             onClick={() => downloadCommandCenterWorkbook(useEnterpriseScale)}
-            className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+            className="px-3 py-2.5 sm:py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
             title="Download real 6-Sheet .xlsx Excel Workbook with live SUMIFS, COUNTIF, IF & TODAY() formulas"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Download 6-Sheet .xlsx</span>
+            <Download className="w-3.5 h-3.5 shrink-0" />
+            <span>Download .xlsx</span>
           </button>
           <button
             onClick={() => window.print()}
-            className="px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1 cursor-pointer"
+            className="col-span-2 sm:col-span-1 px-2.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5 text-amber-400" />
-            <span>PDF</span>
+            <span>Export PDF</span>
           </button>
         </div>
       </div>
@@ -1103,7 +1103,7 @@ export const MasterExecutiveDashboard: React.FC<MasterExecutiveDashboardProps> =
 
           {/* Interactive 6-Sheet Workbook Inspector */}
           <div className="rounded-2xl bg-slate-900 border border-slate-800 overflow-hidden">
-            <div className="bg-slate-950 border-b border-slate-800 px-4 py-2.5 flex flex-wrap items-center gap-1.5 text-xs font-mono">
+            <div className="bg-slate-950 border-b border-slate-800 px-3 sm:px-4 py-2.5 flex overflow-x-auto sm:flex-wrap items-center gap-1.5 text-xs font-mono">
               {[
                 { id: 'sheet1', label: 'Sheet 1: Executive Dashboard' },
                 { id: 'sheet2', label: 'Sheet 2: P1 Dead Inventory' },
@@ -1115,7 +1115,7 @@ export const MasterExecutiveDashboard: React.FC<MasterExecutiveDashboardProps> =
                 <button
                   key={s.id}
                   onClick={() => setActiveSheet(s.id as any)}
-                  className={`px-3 py-1.5 rounded-lg font-bold cursor-pointer transition ${
+                  className={`px-3 py-1.5 rounded-lg font-bold cursor-pointer transition whitespace-nowrap shrink-0 ${
                     activeSheet === s.id
                       ? 'bg-emerald-500 text-slate-950'
                       : 'text-slate-400 hover:text-white bg-slate-900 border border-slate-800'
@@ -1126,7 +1126,11 @@ export const MasterExecutiveDashboard: React.FC<MasterExecutiveDashboardProps> =
               ))}
             </div>
 
-            <div className="p-4 overflow-x-auto">
+            <div className="sm:hidden px-3 py-1.5 bg-slate-950/60 border-b border-slate-800 text-[10px] font-mono text-amber-300 text-center">
+              ← Swipe sheet horizontally to view all columns →
+            </div>
+
+            <div className="p-3 sm:p-4 overflow-x-auto touch-pan-x">
               {activeSheet === 'sheet1' && (
                 <table className="w-full text-left text-xs font-mono">
                   <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">

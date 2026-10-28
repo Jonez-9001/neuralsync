@@ -7,6 +7,12 @@
     --font-mono: 'JetBrains Mono', monospace;
   }
 
+  html, body {
+    max-width: 100%;
+    overflow-x: clip;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     font-family: var(--font-sans);
     background-color: #020617; /* slate-950 */
@@ -14,6 +20,10 @@
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  button, a, select, input {
+    touch-action: manipulation;
   }
 
   /* Monospace figures for tabular data alignment */

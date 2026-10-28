@@ -45,6 +45,14 @@ export const MultiDeviceSyncModal: React.FC<MultiDeviceSyncModalProps> = ({
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [incomingPacket, setIncomingPacket] = useState('');
   const [webhookUrl, setWebhookUrl] = useState(() => localStorage.getItem('suite_cloud_webhook_url') || '');
+  const [mobileUrl, setMobileUrl] = useState(() =>
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+      ? `http://172.20.10.2:${window.location.port || '3000'}/`
+      : typeof window !== 'undefined'
+      ? window.location.origin + window.location.pathname
+      : 'http://172.20.10.2:3000/'
+  );
   const [statusMessage, setStatusMessage] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
   if (!isOpen) return null;
@@ -213,7 +221,42 @@ export const MultiDeviceSyncModal: React.FC<MultiDeviceSyncModalProps> = ({
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
+          {/* Instant Open on Mobile Phone (QR Code + PWA Install Guide) */}
+          <div className="bg-slate-950 border border-cyan-500/40 rounded-xl p-4 flex flex-col sm:flex-row items-center gap-4">
+            <div className="bg-white p-2 rounded-xl shrink-0">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=132x132&data=${encodeURIComponent(mobileUrl)}`}
+                alt="Scan QR to open Manufacturing Command Center on Mobile"
+                className="w-28 h-28 sm:w-32 sm:h-32 block"
+              />
+            </div>
+            <div className="space-y-2 flex-1 w-full text-xs">
+              <div className="flex items-center gap-2 text-cyan-300 font-mono font-bold uppercase">
+                <Smartphone className="w-4 h-4" />
+                <span>Open Instantly on Mobile Phone (iOS &amp; Android PWA)</span>
+              </div>
+              <p className="text-slate-300 leading-relaxed">
+                Connect your phone to the same Wi-Fi (or use your GitHub Pages URL) and scan this QR code with your phone camera. Tap <strong>&ldquo;Add to Home Screen&rdquo;</strong> (iOS Safari) or <strong>&ldquo;Install App&rdquo;</strong> (Android Chrome) for full-screen mobile mode.
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={mobileUrl}
+                  onChange={(e) => setMobileUrl(e.target.value)}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono text-xs text-emerald-300 focus:outline-none focus:border-cyan-500"
+                  aria-label="Mobile Access URL"
+                />
+                <button
+                  onClick={() => navigator.clipboard.writeText(mobileUrl)}
+                  className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold shrink-0 cursor-pointer"
+                >
+                  Copy URL
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Step 1: Export from Field Tablet / Phone */}
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
