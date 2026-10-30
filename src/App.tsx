@@ -99,24 +99,7 @@ export default function App() {
   const [versionMode, setVersionMode] = useState<ArchitectureVersion>(() => {
     const fromUrl = parseRequestedArchitecture();
     if (fromUrl) return fromUrl;
-
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY_VERSION_MODE) as ArchitectureVersion | null;
-      if (
-        saved === 'ceo_master' ||
-        saved === 'standalone_p1' ||
-        saved === 'standalone_p2' ||
-        saved === 'standalone_p3' ||
-        saved === 'standalone_p4' ||
-        saved === 'standalone_p5' ||
-        saved === 'custom_combos' ||
-        saved === 'merged_suite'
-      ) {
-        return saved;
-      }
-    } catch {
-      // ignore
-    }
+    // Default directly to Project 2 (Dispatch OTIF) as requested
     return 'standalone_p2';
   });
 
