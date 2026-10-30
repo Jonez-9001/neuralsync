@@ -55,8 +55,51 @@ const STORAGE_KEY_VERSION_MODE = 'industrial_architecture_version_mode_v6';
 const STORAGE_KEY_CLIENTS = 'suite_client_workspaces_v1';
 const STORAGE_KEY_ACTIVE_CLIENT = 'suite_active_client_id_v1';
 
+function parseRequestedArchitecture(): ArchitectureVersion | null {
+  try {
+    const searchParams = new URLSearchParams(window.location.search);
+    const hashRaw = window.location.hash.startsWith('#')
+      ? window.location.hash.slice(1)
+      : window.location.hash;
+    const hashParams = new URLSearchParams(hashRaw);
+
+    const target = (
+      searchParams.get('project') ||
+      searchParams.get('p') ||
+      searchParams.get('engine') ||
+      hashParams.get('project') ||
+      hashParams.get('p') ||
+      hashParams.get('engine') ||
+      hashRaw
+    ).toLowerCase();
+
+    if (target === 'p2' || target === 'otif' || target === 'dispatch' || target === 'standalone_p2') {
+      return 'standalone_p2';
+    }
+    if (target === 'p1' || target === 'cash' || target === 'inventory' || target === 'standalone_p1') {
+      return 'standalone_p1';
+    }
+    if (target === 'p3' || target === 'freight' || target === 'profit' || target === 'standalone_p3') {
+      return 'standalone_p3';
+    }
+    if (target === 'p4' || target === 'binaudit' || target === 'warehouse' || target === 'standalone_p4') {
+      return 'standalone_p4';
+    }
+    if (target === 'p5' || target === 'tower' || target === 'controltower' || target === 'standalone_p5') {
+      return 'standalone_p5';
+    }
+    if (target === 'ceo' || target === 'master' || target === 'ceo_master') {
+      return 'ceo_master';
+    }
+  } catch {}
+  return null;
+}
+
 export default function App() {
   const [versionMode, setVersionMode] = useState<ArchitectureVersion>(() => {
+    const fromUrl = parseRequestedArchitecture();
+    if (fromUrl) return fromUrl;
+
     try {
       const saved = localStorage.getItem(STORAGE_KEY_VERSION_MODE) as ArchitectureVersion | null;
       if (
@@ -74,7 +117,7 @@ export default function App() {
     } catch {
       // ignore
     }
-    return 'ceo_master';
+    return 'standalone_p2';
   });
 
   // Commercial Rebranding Mode (P1-P5 Codes vs Manufacturing Control Tower Commercial Names)
@@ -161,8 +204,20 @@ export default function App() {
       }
     };
     hydrateFromUrl();
+    const handleUrlNavigation = () => {
+      const requested = parseRequestedArchitecture();
+      if (requested) {
+        setVersionMode(requested);
+      }
+    };
     window.addEventListener('hashchange', hydrateFromUrl);
-    return () => window.removeEventListener('hashchange', hydrateFromUrl);
+    window.addEventListener('hashchange', handleUrlNavigation);
+    window.addEventListener('popstate', handleUrlNavigation);
+    return () => {
+      window.removeEventListener('hashchange', hydrateFromUrl);
+      window.removeEventListener('hashchange', handleUrlNavigation);
+      window.removeEventListener('popstate', handleUrlNavigation);
+    };
   }, []);
 
   // Listen for cross-tab BroadcastChannel & storage updates so Gate Tablet (P2) & Store Count Sheet (P4) sync live
